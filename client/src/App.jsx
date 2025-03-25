@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import Home from './pages/Home';
-// import Membership from './pages/Membership';
+import Membership from './pages/Membership';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
@@ -12,8 +12,8 @@ import { AuthProvider } from './context/AuthContext';
 // Private route component
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import TrainerBookingPage from './pages/TrainerBookingPage';
-import MembershipPage from './pages/MembershipPage';
-import BookingPage from './pages/BookingPage';
+// import MembershipPage from './pages/MembershipPage';
+// import BookingPage from './pages/BookingPage';
 // import BookingConfirmationPage from './components/membership/BookingConfirmationPage';
 // import PackageDetailsPage from './components/membership/PackageDetailsPage';
 
@@ -28,8 +28,8 @@ function App() {
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Home />} />
-            <Route path="/membership" element={<MembershipPage />} />
-            <Route path="/booking" element={<BookingPage/>} />
+            <Route path="/membership" element={<Membership />} />
+            {/* <Route path="/booking" element={<BookingPage/>} /> */}
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />

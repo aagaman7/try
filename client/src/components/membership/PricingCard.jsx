@@ -1,78 +1,70 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
-const PricingCard = ({ pkg }) => {
-  const navigate = useNavigate();
-  
-  const colorClasses = {
-    gray: {
-      bg: 'bg-gray-100',
-      border: 'border-gray-200',
-      button: 'bg-gray-800 hover:bg-gray-900',
-      highlight: 'text-gray-800',
-    },
-    blue: {
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
-      button: 'bg-blue-600 hover:bg-blue-700',
-      highlight: 'text-blue-600',
-    },
-    indigo: {
-      bg: 'bg-indigo-50',
-      border: 'border-indigo-200',
-      button: 'bg-indigo-600 hover:bg-indigo-700',
-      highlight: 'text-indigo-600',
-    },
-  };
+const PricingCard = ({ pkg, onSelect }) => {
+  const handleSelectPackage = async () => {
+    try {
+      // Implement booking logic 
+      const response = await axios.post('/api/bookings', {
+        packageId: pkg.id,
+        // You might want to pass additional user info from context/state
+        userId: null, // Replace with actual user ID
+      }, {
+        headers: {
+          'Authorization': localStorage.getItem('token') // Assuming token is stored in localStorage
+        }
+      });
 
-  const colors = colorClasses[pkg.color];
-  
-  // Map package name to route parameter
-  const getPackageType = (name) => {
-    const packageMap = {
-      'Basic': 'basic',
-      'Premium': 'premium',
-      'Elite': 'elite',
-      'Custom': 'custom'
-    };
-    return packageMap[name] || name.toLowerCase();
-  };
-
-  const handlePackageSelect = () => {
-    const packageType = getPackageType(pkg.name);
-    navigate(`/package/${packageType}`);
+      // Handle successful booking 
+      onSelect(response.data);
+    } catch (error) {
+      console.error('Error booking package:', error.response?.data || error.message);
+      // Implement error handling (e.g., show error message to user)
+    }
   };
 
   return (
-    <div className={`rounded-lg shadow-lg ${pkg.popular ? 'ring-2 ring-blue-500' : ''}`}>
-      <div className={`p-6 ${colors.bg} rounded-t-lg ${colors.border} border-b`}>
-        {pkg.popular && (
-          <span className="inline-flex px-4 py-1 rounded-full text-sm font-semibold tracking-wide uppercase bg-blue-200 text-blue-800 mb-4">
-            Most Popular
-          </span>
-        )}
-        <h3 className="text-2xl font-bold text-gray-900">{pkg.name}</h3>
-        <div className="mt-4 flex items-baseline">
+    <div className={`bg-white shadow-lg rounded-lg overflow-hidden transform transition duration-300 hover:scale-105 border-2 ${
+      pkg.popular ? 'border-blue-500' : 'border-transparent'
+    }`}>
+      <div className={`p-6 bg-${pkg.color}-50`}>
+        <h3 className={`text-xl font-bold text-${pkg.color}-800 mb-2`}>{pkg.name}</h3>
+        <div className="flex items-baseline">
           <span className="text-4xl font-extrabold text-gray-900">${pkg.price}</span>
           <span className="ml-1 text-xl font-medium text-gray-500">/{pkg.period}</span>
         </div>
+        {pkg.popular && (
+          <div className="mt-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium inline-block">
+            Most Popular
+          </div>
+        )}
       </div>
-      <div className="p-6 bg-white rounded-b-lg">
+      <div className="p-6 bg-white">
         <ul className="space-y-4">
           {pkg.features.map((feature, index) => (
-            <li key={index} className="flex items-start">
-              <svg className={`flex-shrink-0 h-6 w-6 ${colors.highlight}`} fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            <li key={index} className="flex items-center">
+              <svg 
+                className={`h-6 w-6 text-${pkg.color}-500 mr-3`} 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M5 13l4 4L19 7" 
+                />
               </svg>
-              <span className="ml-3 text-base text-gray-700">{feature}</span>
+              {feature}
             </li>
           ))}
         </ul>
-        <button
-          onClick={handlePackageSelect}
-          className={`block w-full px-4 py-3 text-center rounded-md shadow ${colors.button} text-white font-medium mt-8`}
+        <button 
+          onClick={handleSelectPackage}
+          className={`mt-6 w-full px-4 py-3 bg-${pkg.color}-600 text-white rounded-md hover:bg-${pkg.color}-700 transition duration-300`}
         >
-          Choose {pkg.name}
+          Select Package
         </button>
       </div>
     </div>

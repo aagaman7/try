@@ -3,10 +3,16 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+
+// Existing routes
 const authRoutes = require("./routes/authRoutes");
-const membershipRoutes = require("./routes/membershipRoutes");
-const customPackageRoutes = require("./routes/customPackageRoutes");
+// const membershipRoutes = require("./routes/membershipRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
+
+// New Admin Routes
+const adminRoutes = require("./routes/adminRoutes");
+const packageServiceRoutes = require("./routes/packageServiceRoutes");
+const gymInsightsRoutes = require("./routes/gymInsightsRoutes");
 
 const app = express();
 
@@ -30,9 +36,10 @@ mongoose
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/auth", authRoutes);
 
-//Route connection
-// const routes = require("./routes/indexRoute");
-// app.use("/",routes);
+// Admin Routes
+app.use("/api/admin/users", adminRoutes);
+app.use("/api/admin/packages", packageServiceRoutes);
+app.use("/api/admin/gym", gymInsightsRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, (err) => {

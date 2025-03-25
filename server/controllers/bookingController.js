@@ -1,5 +1,7 @@
 const Booking = require("../models/Booking");
 const GymCapacity = require("../models/GymCapacity");
+const Package = require("../models/Package"); // Import Package model
+const Service = require("../models/Service");
 
 exports.bookMembership = async (req, res) => {
   try {

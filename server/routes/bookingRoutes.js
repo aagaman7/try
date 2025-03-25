@@ -1,9 +1,9 @@
 const express = require("express");
-const { bookMembership } = require("../controllers/bookingController");
-const { authMiddleware } = require("../middleware/authMiddleware");
+const bookingController = require("../controllers/bookingController");
+const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.post("/", authMiddleware, bookMembership);
+router.post("/", authMiddleware, bookingController.bookMembership);
 
 module.exports = router;
