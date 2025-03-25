@@ -1,4 +1,3 @@
-// index.js
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -6,10 +5,9 @@ const cors = require("cors");
 
 // Existing routes
 const authRoutes = require("./routes/authRoutes");
-// const membershipRoutes = require("./routes/membershipRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 
-// New Admin Routes
+// Admin Routes
 const adminRoutes = require("./routes/adminRoutes");
 const packageServiceRoutes = require("./routes/packageServiceRoutes");
 const gymInsightsRoutes = require("./routes/gymInsightsRoutes");

@@ -2,8 +2,10 @@
 const User = require("../models/UserModel");
 const Booking = require("../models/Booking");
 
+console.log("Defining getAllUsers function"); // Add this line
 exports.getAllUsers = async (req, res) => {
-  try {
+    console.log("getAllUsers called"); // Add this line
+    try {
     const { page = 1, limit = 10, role, search } = req.query;
     
     // Build query conditions

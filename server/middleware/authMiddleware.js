@@ -14,4 +14,4 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-module.exports = authMiddleware;
+module.exports = { authMiddleware }; // Explicitly export as an object
