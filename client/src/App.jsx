@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import Home from './pages/Home';
-import Membership from './pages/Membership';
+// import Membership from './pages/Membership';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
@@ -28,7 +28,7 @@ function App() {
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Home />} />
-            <Route path="/membership" element={<Membership />} />
+            {/* <Route path="/membership" element={<Membership />} /> */}
             {/* <Route path="/booking" element={<BookingPage/>} /> */}
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />

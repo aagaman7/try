@@ -1,10 +1,17 @@
 const Booking = require("../models/BookingModel");
 const Package = require("../models/PackageModel");
+const Service = require("../models/ServiceModel");
+const User = require("../models/UserModel");
 const Discount = require("../models/DiscountModel");
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 exports.createBooking = async (req, res) => {
   try {
+    // Check if user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "User is not authenticated" });
+    }
+
     const { 
       packageId, 
       customServices, 
@@ -13,6 +20,11 @@ exports.createBooking = async (req, res) => {
       goals, 
       paymentInterval 
     } = req.body;
+
+    // Validate required fields
+    if (!packageId || !timeSlot || !workoutDaysPerWeek || !goals || !paymentInterval) {
+      return res.status(400).json({ message: "Missing required booking fields" });
+    }
 
     // Find package and validate
     const package = await Package.findById(packageId).populate('includedServices');
@@ -81,6 +93,7 @@ exports.createBooking = async (req, res) => {
       clientSecret: paymentIntent.client_secret 
     });
   } catch (error) {
+    console.error("Booking creation error:", error);
     res.status(500).json({ message: "Error creating booking", error: error.message });
   }
 };
