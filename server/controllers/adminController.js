@@ -1,6 +1,6 @@
 // controllers/adminController.js
 const User = require("../models/UserModel");
-const Booking = require("../models/Booking");
+const Booking = require("../models/BookingModel");
 
 console.log("Defining getAllUsers function"); // Add this line
 exports.getAllUsers = async (req, res) => {

@@ -2,15 +2,18 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // Existing routes
 const authRoutes = require("./routes/authRoutes");
-const bookingRoutes = require("./routes/bookingRoutes");
-
-// Admin Routes
 const adminRoutes = require("./routes/adminRoutes");
-const packageServiceRoutes = require("./routes/packageServiceRoutes");
-const gymInsightsRoutes = require("./routes/gymInsightsRoutes");
+
+// New routes for membership system
+const packageRoutes = require("./routes/packageRoutes");
+const serviceRoutes = require("./routes/serviceRoutes");
+const discountRoutes = require("./routes/discountRoutes");
+const bookingRoutes = require("./routes/bookingRoutes");
+const goalRoutes = require("./routes/goalRoutes");
 
 const app = express();
 
@@ -31,15 +34,17 @@ mongoose
   .catch((err) => console.error("MongoDB connection error:", err));
 
 // Routes
-app.use("/api/bookings", bookingRoutes);
 app.use("/api/auth", authRoutes);
-
-// Admin Routes
 app.use("/api/admin/users", adminRoutes);
-app.use("/api/admin/packages", packageServiceRoutes);
-app.use("/api/admin/gym", gymInsightsRoutes);
 
-const PORT = process.env.PORT || 5000;
+// Membership System Routes
+app.use("/api/packages", packageRoutes);
+app.use("/api/services", serviceRoutes);
+app.use("/api/discounts", discountRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/goals", goalRoutes);
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, (err) => {
   if (err) {
     console.log("Server error: ", err);

@@ -1,9 +1,11 @@
 const express = require("express");
 const bookingController = require("../controllers/bookingController");
-const { authMiddleware } = require("../middleware/authMiddleware"); // Update import to match middleware export
+const { authMiddleware } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.post("/", authMiddleware, bookingController.bookMembership);
+// User routes for booking
+router.post("/", authMiddleware, bookingController.createBooking);
+router.get("/", authMiddleware, bookingController.getUserBookings);
 
 module.exports = router;
