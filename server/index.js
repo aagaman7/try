@@ -13,7 +13,7 @@ const packageRoutes = require("./routes/packageRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const discountRoutes = require("./routes/discountRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
-const goalRoutes = require("./routes/goalRoutes");
+// const goalRoutes = require("./routes/goalRoutes");
 
 const app = express();
 
@@ -42,7 +42,7 @@ app.use("/api/packages", packageRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/discounts", discountRoutes);
 app.use("/api/bookings", bookingRoutes);
-app.use("/api/goals", goalRoutes);
+// app.use("/api/goals", goalRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, (err) => {
