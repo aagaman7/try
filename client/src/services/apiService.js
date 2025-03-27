@@ -1,39 +1,30 @@
+import axios from 'axios';
+
 const API_BASE_URL = "http://localhost:5000/api";
 
 const apiService = {
   post: async (endpoint, data) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || "Something went wrong");
-      return result;
+      const response = await axios.post(`${API_BASE_URL}/${endpoint}`, data);
+      return response.data;
     } catch (error) {
-      throw error;
+      throw error.response?.data || new Error('Something went wrong');
     }
   },
 
   get: async (endpoint, token = null) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-      });
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || "Something went wrong");
-      return result;
+      const config = token 
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : {};
+      
+      const response = await axios.get(`${API_BASE_URL}/${endpoint}`, config);
+      return response.data;
     } catch (error) {
-      throw error;
+      throw error.response?.data || new Error('Something went wrong');
     }
   },
+
   getPackages: async () => axios.get(`${API_BASE_URL}/packages`),
   getServices: async () => axios.get(`${API_BASE_URL}/services`),
   bookMembership: async (bookingData) => axios.post(`${API_BASE_URL}/bookings`, bookingData),

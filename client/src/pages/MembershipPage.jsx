@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckIcon } from 'lucide-react';
+import { CheckIcon, Star, TrendingUp } from 'lucide-react';
 import apiService from '../services/apiService';
 
 const MembershipPage = () => {
@@ -91,33 +91,31 @@ const MembershipPage = () => {
   };
 
   return (
-    <div className="bg-white py-16">
+    <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-            Choose Your Membership
+          <h2 className="text-4xl font-extrabold text-gray-900 mb-4 flex justify-center items-center">
+            <TrendingUp className="mr-3 text-blue-600" size={36} />
+            Choose Your Fitness Journey
           </h2>
-          <p className="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
-            Select a package that fits your fitness goals
+          <p className="max-w-2xl mx-auto text-xl text-gray-600 leading-relaxed">
+            Unlock your potential with personalized membership options designed to transform your fitness goals.
           </p>
         </div>
 
         {/* Payment Interval Selector */}
-        <div className="flex justify-center mb-8">
-          <div className="inline-flex rounded-md shadow-sm" role="group">
+        <div className="flex justify-center mb-12">
+          <div className="inline-flex rounded-full bg-white shadow-md">
             {['Monthly', '3 Months', 'Yearly'].map(interval => (
               <button
                 key={interval}
                 type="button"
                 onClick={() => setPaymentInterval(interval)}
                 className={`
-                  px-4 py-2 text-sm font-medium 
+                  px-6 py-3 text-sm font-semibold transition-all duration-300
                   ${paymentInterval === interval 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white text-gray-900 hover:bg-gray-100'}
-                  border border-gray-200 
-                  ${interval === 'Monthly' ? 'rounded-l-lg' : ''}
-                  ${interval === 'Yearly' ? 'rounded-r-lg' : ''}
+                    ? 'bg-blue-600 text-white rounded-full shadow-lg' 
+                    : 'bg-white text-gray-700 hover:bg-gray-100'}
                 `}
               >
                 {interval}
@@ -133,24 +131,30 @@ const MembershipPage = () => {
               key={pkg._id}
               onClick={() => setSelectedPackage(pkg)}
               className={`
-                border-2 rounded-lg p-6 cursor-pointer transition-all 
+                border-2 rounded-xl p-6 cursor-pointer transition-all transform hover:scale-105 
                 ${selectedPackage?._id === pkg._id 
-                  ? 'border-blue-600 bg-blue-50' 
-                  : 'border-gray-200 hover:border-blue-300'}
+                  ? 'border-blue-600 bg-blue-50 shadow-2xl' 
+                  : 'border-gray-200 bg-white hover:border-blue-300 shadow-lg'}
               `}
             >
-              <h3 className="text-xl font-bold mb-4">{pkg.name}</h3>
+              {selectedPackage?._id === pkg._id && (
+                <div className="absolute top-4 right-4">
+                  <Star className="text-blue-600 fill-blue-600" size={24} />
+                </div>
+              )}
+              <h3 className="text-2xl font-bold mb-4 text-gray-900">{pkg.name}</h3>
               <p className="text-gray-600 mb-4">{pkg.description}</p>
-              <div className="text-2xl font-extrabold text-blue-600 mb-4">
-                ${pkg.basePrice}/month
+              <div className="text-3xl font-extrabold text-blue-600 mb-6">
+                ${pkg.basePrice}
+                <span className="text-base text-gray-500 ml-1">/month</span>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {pkg.includedServices.map(serviceId => {
                   const service = services.find(s => s._id === serviceId);
                   return service ? (
                     <div key={serviceId} className="flex items-center">
-                      <CheckIcon className="w-5 h-5 text-green-500 mr-2" />
-                      <span>{service.name}</span>
+                      <CheckIcon className="w-6 h-6 text-green-500 mr-3" />
+                      <span className="text-gray-700">{service.name}</span>
                     </div>
                   ) : null;
                 })}
@@ -160,17 +164,19 @@ const MembershipPage = () => {
         </div>
 
         {/* Custom Services Section */}
-        <div className="mt-12">
-          <h3 className="text-2xl font-bold mb-6">Add Custom Services</h3>
-          <div className="grid md:grid-cols-3 gap-4">
+        <div className="mt-16">
+          <h3 className="text-3xl font-bold mb-8 text-center text-gray-900">
+            Customize Your Experience
+          </h3>
+          <div className="grid md:grid-cols-3 gap-6">
             {services.filter(s => s.active).map(service => (
               <div 
                 key={service._id}
                 className={`
-                  border rounded-lg p-4 cursor-pointer flex items-center 
+                  border-2 rounded-lg p-5 cursor-pointer flex items-center transition-all 
                   ${selectedServices.includes(service._id) 
                     ? 'bg-blue-50 border-blue-600' 
-                    : 'hover:bg-gray-50'}
+                    : 'hover:bg-gray-50 border-gray-200'}
                 `}
                 onClick={() => toggleService(service._id)}
               >
@@ -178,10 +184,10 @@ const MembershipPage = () => {
                   type="checkbox" 
                   checked={selectedServices.includes(service._id)}
                   readOnly
-                  className="mr-3"
+                  className="mr-4 w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
                 />
                 <div>
-                  <h4 className="font-semibold">{service.name}</h4>
+                  <h4 className="font-semibold text-lg text-gray-900">{service.name}</h4>
                   <p className="text-gray-500 text-sm">${service.price}</p>
                 </div>
               </div>
@@ -190,19 +196,21 @@ const MembershipPage = () => {
         </div>
 
         {/* Price Summary */}
-        <div className="mt-12 bg-gray-100 p-6 rounded-lg text-center">
-          <h3 className="text-2xl font-bold mb-4">Total Price</h3>
-          <div className="text-3xl font-extrabold text-blue-600">
+        <div className="mt-16 bg-white rounded-xl shadow-2xl p-8 text-center">
+          <h3 className="text-3xl font-bold mb-6 text-gray-900">
+            Your Total Investment
+          </h3>
+          <div className="text-5xl font-extrabold text-blue-600 mb-4">
             ${calculateTotalPrice()}
           </div>
-          <p className="text-gray-600 mt-2">
-            {paymentInterval} Membership
+          <p className="text-gray-600 mb-6 text-lg">
+            {paymentInterval} Membership • All-Inclusive
           </p>
           <button
             onClick={handleProceedToBooking}
-            className="mt-6 w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
+            className="w-full bg-blue-600 text-white py-4 rounded-full text-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
           >
-            Proceed to Booking
+            Start Your Fitness Transformation
           </button>
         </div>
       </div>
