@@ -23,22 +23,61 @@ const BookingPage = () => {
   const [discounts, setDiscounts] = useState([]);
   const [appliedDiscount, setAppliedDiscount] = useState(null);
 
-  useEffect(() => {
+//   useEffect(() => {
+//     const token = localStorage.getItem('token');
+//     if (!token) {
+//       navigate('/login', { state: { redirectTo: `/booking/${packageId}` } });
+//       return;
+//     }
+
+//     const fetchData = async () => {
+//       try {
+//         setLoading(true);
+//         const [packageResponse, servicesResponse, discountsResponse] = await Promise.all([
+//           apiService.get(`packages/${packageId}`),
+//           apiService.get('services?active=true'),
+//           apiService.get('discounts?active=true')
+//         ]);
+
+//         setSelectedPackage(packageResponse);
+//         setAllServices(servicesResponse);
+//         setDiscounts(discountsResponse);
+        
+//         // Initialize form
+//         setFormData(prev => ({
+//           ...prev,
+//           packageId: packageId
+//         }));
+        
+//         // Initial price calculation
+//         setTotalPrice(packageResponse.basePrice);
+        
+//         setLoading(false);
+//       } catch (err) {
+//         setError('Failed to load booking details. Please try again.');
+//         setLoading(false);
+//         console.error('Error fetching booking data:', err);
+//       }
+//     };
+
+//     fetchData();
+//   }, [packageId, navigate]);
+useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
       navigate('/login', { state: { redirectTo: `/booking/${packageId}` } });
       return;
     }
-
+  
     const fetchData = async () => {
       try {
         setLoading(true);
         const [packageResponse, servicesResponse, discountsResponse] = await Promise.all([
-          apiService.get(`packages/${packageId}`),
-          apiService.get('services?active=true'),
-          apiService.get('discounts?active=true')
+          apiService.get(`packages/${packageId}`, token),
+          apiService.get('services?active=true', token),
+          apiService.get('discounts?active=true', token)
         ]);
-
+  
         setSelectedPackage(packageResponse);
         setAllServices(servicesResponse);
         setDiscounts(discountsResponse);
@@ -59,7 +98,7 @@ const BookingPage = () => {
         console.error('Error fetching booking data:', err);
       }
     };
-
+  
     fetchData();
   }, [packageId, navigate]);
 
