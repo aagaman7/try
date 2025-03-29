@@ -4,14 +4,60 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 exports.getUserDashboardInfo = async (req, res) => {
   try {
+    console.log("User Object:", req.user);
+
+    // If no current membership, try to find the most recent active booking
+    if (!req.user.currentMembership) {
+      const mostRecentBooking = await Booking.findOne({ 
+        user: req.user.id, 
+        status: 'Active' 
+      })
+        .populate('package')
+        .populate('customServices')
+        .sort({ createdAt: -1 });
+
+      if (!mostRecentBooking) {
+        return res.status(404).json({ 
+          message: "No active membership found", 
+          details: "No current or recent active bookings" 
+        });
+      }
+
+      // Update user's currentMembership if a recent booking is found
+      await User.findByIdAndUpdate(req.user.id, {
+        currentMembership: mostRecentBooking._id
+      });
+
+      return res.json({
+        membershipDetails: {
+          package: mostRecentBooking.package,
+          customServices: mostRecentBooking.customServices,
+          startDate: mostRecentBooking.startDate,
+          endDate: mostRecentBooking.endDate,
+          activeDays: Math.max(0, Math.floor((new Date() - mostRecentBooking.startDate) / (1000 * 60 * 60 * 24))),
+          daysRemaining: Math.max(0, Math.floor((mostRecentBooking.endDate - new Date()) / (1000 * 60 * 60 * 24))),
+          paymentInterval: mostRecentBooking.paymentInterval,
+          totalPrice: mostRecentBooking.totalPrice
+        }
+      });
+    }
+
     const currentBooking = await Booking.findById(req.user.currentMembership)
       .populate('package')
       .populate('customServices');
 
     if (!currentBooking) {
-      return res.status(404).json({ message: "No active membership found" });
+      return res.status(404).json({ 
+        message: "No active membership found", 
+        details: "Current membership ID invalid" 
+      });
     }
-
+    if (!currentBooking) {
+      return res.status(404).json({ 
+        message: "No active membership found", 
+        membershipId: req.user.currentMembership 
+      });
+    }
     // Calculate days in membership
     const today = new Date();
     const membershipStartDate = currentBooking.startDate;
