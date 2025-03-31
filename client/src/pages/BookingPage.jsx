@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import apiService from '../services/apiService';
-// import PaymentModal from '../components/PaymentModal';
+import PaymentModal from '../components/PaymentModal';
 
 const BookingPage = () => {
   const { packageId } = useParams();

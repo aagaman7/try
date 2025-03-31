@@ -21,15 +21,19 @@ const MembershipPage = () => {
           apiService.getServices()
         ]);
         
-        // Ensure we have valid data
-        if (packagesResponse?.data) {
+        // Check if responses are arrays (direct data) or objects with data property
+        if (Array.isArray(packagesResponse)) {
+          setPackages(packagesResponse);
+        } else if (packagesResponse?.data) {
           setPackages(packagesResponse.data);
         } else {
           console.warn('Packages data is not in expected format:', packagesResponse);
           setPackages([]);
         }
         
-        if (servicesResponse?.data) {
+        if (Array.isArray(servicesResponse)) {
+          setServices(servicesResponse);
+        } else if (servicesResponse?.data) {
           setServices(servicesResponse.data);
         } else {
           console.warn('Services data is not in expected format:', servicesResponse);

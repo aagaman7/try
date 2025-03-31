@@ -34,7 +34,7 @@ const apiService = {
   getPackages: async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/packages`);
-      return response.data;
+      return response.data; // Return the actual data directly
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch packages');
     }
@@ -43,7 +43,7 @@ const apiService = {
   getServices: async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/services`);
-      return response.data;
+      return response.data; // Return the actual data directly
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch services');
     }
