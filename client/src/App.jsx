@@ -17,8 +17,7 @@ import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 
 // Load Stripe
-const stripePromise = loadStripe('your_stripe_publishable_key');
-
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLIC_KEY);
 function App() {
   return (
     <AuthProvider>
@@ -30,7 +29,7 @@ function App() {
               {/* Public routes */}
               <Route path="/" element={<Home />} />
               <Route path="/membership" element={<MembershipPage />} />
-              <Route path="/booking" element={<BookingPage />} />
+              <Route path="/booking/:packageID" element={<BookingPage />} />
               {/* <Route path="/confirmation" element={<ConfirmationPage />} /> */}
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />

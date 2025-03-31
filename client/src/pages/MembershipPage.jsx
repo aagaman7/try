@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import apiService from '../services/apiService';
 
 const MembershipPage = () => {
@@ -13,18 +13,34 @@ const MembershipPage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setError(null);
+        
+        // Fetch packages and services
         const [packagesResponse, servicesResponse] = await Promise.all([
           apiService.getPackages(),
           apiService.getServices()
         ]);
         
-        setPackages(packagesResponse.data);
-        setServices(servicesResponse.data);
+        // Ensure we have valid data
+        if (packagesResponse?.data) {
+          setPackages(packagesResponse.data);
+        } else {
+          console.warn('Packages data is not in expected format:', packagesResponse);
+          setPackages([]);
+        }
+        
+        if (servicesResponse?.data) {
+          setServices(servicesResponse.data);
+        } else {
+          console.warn('Services data is not in expected format:', servicesResponse);
+          setServices([]);
+        }
+        
         setLoading(false);
       } catch (err) {
+        console.error('Error fetching data:', err);
         setError('Failed to load packages and services. Please try again later.');
         setLoading(false);
-        console.error('Error fetching data:', err);
       }
     };
 
@@ -59,6 +75,17 @@ const MembershipPage = () => {
           >
             Try Again
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if no packages or services are available
+  if (packages.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+          <p className="text-yellow-700">No membership packages are currently available. Please check back later.</p>
         </div>
       </div>
     );
@@ -121,23 +148,25 @@ const MembershipPage = () => {
       </div>
 
       {/* Services Section */}
-      <div className="bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-8 text-center">
-            Additional Services
-          </h2>
-          
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {services.filter(service => service.active).map((service) => (
-              <div key={service._id} className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-800">{service.name}</h3>
-                <p className="mt-2 text-gray-600">{service.description}</p>
-                <p className="mt-4 text-blue-600 font-bold">${service.price}</p>
-              </div>
-            ))}
+      {services.length > 0 && (
+        <div className="bg-gray-50 py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-8 text-center">
+              Additional Services
+            </h2>
+            
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {services.filter(service => service.active).map((service) => (
+                <div key={service._id} className="bg-white p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-800">{service.name}</h3>
+                  <p className="mt-2 text-gray-600">{service.description}</p>
+                  <p className="mt-4 text-blue-600 font-bold">${service.price}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
