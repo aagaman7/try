@@ -1,5 +1,6 @@
 const Package = require("../models/PackageModel");
 const Service = require("../models/ServiceModel");
+const mongoose = require("mongoose");
 
 exports.createPackage = async (req, res) => {
   try {
@@ -46,6 +47,30 @@ exports.getAllPackages = async (req, res) => {
     res.json(packages);
   } catch (error) {
     res.status(500).json({ message: "Error retrieving packages", error: error.message });
+  }
+};
+
+exports.getPackageById = async (req, res) => {
+  try {
+    const { packageId } = req.params;
+    
+    // Check if packageId is valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(packageId)) {
+      return res.status(400).json({ message: "Invalid package ID format" });
+    }
+
+    // Find the package by ID and populate the includedServices
+    const package = await Package.findById(packageId).populate('includedServices');
+    
+    // If package not found, return 404
+    if (!package) {
+      return res.status(404).json({ message: "Package not found" });
+    }
+    
+    // Return the package data
+    res.json(package);
+  } catch (error) {
+    res.status(500).json({ message: "Error retrieving package", error: error.message });
   }
 };
 

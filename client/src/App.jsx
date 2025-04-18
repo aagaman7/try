@@ -31,7 +31,7 @@ function App() {
               {/* Public routes */}
               <Route path="/" element={<Home />} />
               <Route path="/membership" element={<MembershipPage />} />
-              <Route path="/booking/:packageID" element={<BookingPage />} />
+              <Route path="/booking/:packageId" element={<BookingPage />} />
               {/* <Route path="/confirmation" element={<ConfirmationPage />} /> */}
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />

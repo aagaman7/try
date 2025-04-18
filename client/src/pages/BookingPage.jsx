@@ -23,46 +23,7 @@ const BookingPage = () => {
   const [discounts, setDiscounts] = useState([]);
   const [appliedDiscount, setAppliedDiscount] = useState(null);
 
-//   useEffect(() => {
-//     const token = localStorage.getItem('token');
-//     if (!token) {
-//       navigate('/login', { state: { redirectTo: `/booking/${packageId}` } });
-//       return;
-//     }
-
-//     const fetchData = async () => {
-//       try {
-//         setLoading(true);
-//         const [packageResponse, servicesResponse, discountsResponse] = await Promise.all([
-//           apiService.get(`packages/${packageId}`),
-//           apiService.get('services?active=true'),
-//           apiService.get('discounts?active=true')
-//         ]);
-
-//         setSelectedPackage(packageResponse);
-//         setAllServices(servicesResponse);
-//         setDiscounts(discountsResponse);
-        
-//         // Initialize form
-//         setFormData(prev => ({
-//           ...prev,
-//           packageId: packageId
-//         }));
-        
-//         // Initial price calculation
-//         setTotalPrice(packageResponse.basePrice);
-        
-//         setLoading(false);
-//       } catch (err) {
-//         setError('Failed to load booking details. Please try again.');
-//         setLoading(false);
-//         console.error('Error fetching booking data:', err);
-//       }
-//     };
-
-//     fetchData();
-//   }, [packageId, navigate]);
-useEffect(() => {
+  useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
       navigate('/login', { state: { redirectTo: `/booking/${packageId}` } });
@@ -72,16 +33,27 @@ useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [packageResponse, servicesResponse, discountsResponse] = await Promise.all([
-          apiService.get(`packages/${packageId}`, token),
-          apiService.get('services?active=true', token),
-          apiService.get('discounts?active=true', token)
-        ]);
-  
-        setSelectedPackage(packageResponse);
-        setAllServices(servicesResponse);
-        setDiscounts(discountsResponse);
-        
+
+        // Fetch package details
+        const packageResult = await apiService.getPackages();
+        console.log('Package Result:', packageResult);
+        // if (!packageResult.package) {
+        //   throw new Error('Package not found');
+        // }
+        // setSelectedPackage(packageResult.package);
+
+        // Fetch all services
+        // const servicesResult = await apiService.getServices();
+        // if (servicesResult.services) {
+        //   setAllServices(servicesResult.services);
+        // }
+
+        // Fetch discounts
+        // const discountResult = await apiService.getAllDiscounts({ active: true });
+        // if (discountResult.discounts) {
+        //   setDiscounts(discountResult.discounts);
+        // }
+
         // Initialize form
         setFormData(prev => ({
           ...prev,
@@ -89,7 +61,7 @@ useEffect(() => {
         }));
         
         // Initial price calculation
-        setTotalPrice(packageResponse.basePrice);
+        setTotalPrice(packageResult.package.basePrice);
         
         setLoading(false);
       } catch (err) {
@@ -227,9 +199,12 @@ useEffect(() => {
     );
   }
 
+  // Only show services that aren't already included in the package
   const availableServices = allServices.filter(service => 
-    // Show services that are not already included in the package
-    !selectedPackage.includedServices.some(included => included._id === service._id)
+    !selectedPackage.includedServices.some(includedId => 
+      // Compare service IDs, handling both string IDs and object IDs
+      (typeof includedId === 'object' ? includedId._id : includedId) === service._id
+    )
   );
 
   return (
@@ -262,14 +237,23 @@ useEffect(() => {
                   <div className="mt-4">
                     <p className="font-medium text-gray-700">Included Services:</p>
                     <ul className="mt-2 grid grid-cols-1 gap-2">
-                      {selectedPackage.includedServices.map(service => (
-                        <li key={service._id} className="flex items-start">
-                          <svg className="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                          </svg>
-                          <span>{service.name} (${service.price})</span>
-                        </li>
-                      ))}
+                      {selectedPackage.includedServices.map(service => {
+                        // Find the full service details from allServices
+                        const serviceDetails = typeof service === 'object' && service.name ? 
+                          service : 
+                          allServices.find(s => s._id === service);
+                        
+                        if (!serviceDetails) return null;
+                        
+                        return (
+                          <li key={typeof service === 'object' ? service._id : service} className="flex items-start">
+                            <svg className="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>{serviceDetails.name} (${serviceDetails.price})</span>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 )}

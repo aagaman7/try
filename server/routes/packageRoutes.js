@@ -8,6 +8,7 @@ const router = express.Router();
 // Admin routes for package management
 router.post("/", authMiddleware, adminMiddleware, packageController.createPackage);
 router.get("/", packageController.getAllPackages);
+router.get("/:packageId", packageController.getPackageById);
 router.put("/:packageId", authMiddleware, adminMiddleware, packageController.updatePackage);
 router.delete("/:packageId", authMiddleware, adminMiddleware, packageController.deletePackage);
 
