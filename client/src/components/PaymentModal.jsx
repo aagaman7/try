@@ -24,6 +24,7 @@ const PaymentModal = ({ booking, totalPrice, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     
     try {
       const token = localStorage.getItem('token');
@@ -32,28 +33,39 @@ const PaymentModal = ({ booking, totalPrice, onClose }) => {
         return;
       }
       
-      // Process booking
+      // First, create the booking to get client secret
       const response = await apiService.bookMembership(booking, token);
       
-      // Process payment with Stripe client secret
-      if (response.clientSecret) {
-        // Simulating payment confirmation for now
-        // In a real app, you would use Stripe.js to handle the payment
-        
-        setTimeout(() => {
-          setLoading(false);
-          navigate('/dashboard', { 
-            state: { 
-              success: true, 
-              message: 'Your booking has been confirmed!' 
-            } 
-          });
-        }, 2000);
+      if (!response || !response.clientSecret) {
+        throw new Error('No client secret received from server');
+      }
+      
+      // Simulate card processing with the client secret
+      // In a real app, you would use Stripe.js Elements to handle this
+      console.log('Processing payment with client secret:', response.clientSecret);
+      
+      // Confirm the payment with our API
+      const paymentConfirmation = await apiService.confirmPayment({
+        bookingId: response.booking._id,
+        paymentMethodId: 'pm_simulated_payment', // This would come from Stripe Elements in real app
+        cardInfo: cardInfo // You might not send raw card info in a real app
+      }, token);
+      
+      if (paymentConfirmation.success) {
+        setLoading(false);
+        navigate('/dashboard', { 
+          state: { 
+            success: true, 
+            message: 'Your booking has been confirmed!' 
+          } 
+        });
+      } else {
+        throw new Error('Payment confirmation failed');
       }
     } catch (err) {
-      setError('Payment processing failed. Please try again.');
-      setLoading(false);
       console.error('Payment error:', err);
+      setError(err.message || 'Payment processing failed. Please try again.');
+      setLoading(false);
     }
   };
 

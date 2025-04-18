@@ -97,6 +97,9 @@ const apiService = {
   
   bookMembership: async (bookingData, token) => apiService.post(`bookings`, bookingData, token),
   
+  // Add new method for payment confirmation
+  confirmPayment: async (paymentData, token) => apiService.post(`payments/confirm`, paymentData, token),
+  
   checkAvailability: async (timeSlot) => {
     try {
       const response = await axios.get(`${API_BASE_URL}/bookings/check-availability?timeSlot=${timeSlot}`);

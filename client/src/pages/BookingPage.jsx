@@ -35,24 +35,35 @@ const BookingPage = () => {
         setLoading(true);
 
         // Fetch package details
-        const packageResult = await apiService.getPackages();
+        const packageResult = await apiService.getPackageById(packageId);
         console.log('Package Result:', packageResult);
-        // if (!packageResult.package) {
-        //   throw new Error('Package not found');
-        // }
-        // setSelectedPackage(packageResult.package);
+        
+        // Check if packageResult has the expected structure
+        const packageData = packageResult.package || packageResult.data || packageResult;
+        if (!packageData) {
+          throw new Error('Package not found');
+        }
+        setSelectedPackage(packageData);
 
         // Fetch all services
-        // const servicesResult = await apiService.getServices();
-        // if (servicesResult.services) {
-        //   setAllServices(servicesResult.services);
-        // }
+        const servicesResult = await apiService.getServices();
+        const servicesData = servicesResult.services || servicesResult.data || servicesResult;
+        if (Array.isArray(servicesData)) {
+          setAllServices(servicesData);
+        } else {
+          console.warn('Services data is not in expected format:', servicesResult);
+          setAllServices([]);
+        }
 
         // Fetch discounts
-        // const discountResult = await apiService.getAllDiscounts({ active: true });
-        // if (discountResult.discounts) {
-        //   setDiscounts(discountResult.discounts);
-        // }
+        const discountResult = await apiService.getAllDiscounts({ active: true });
+        const discountsData = discountResult.discounts || discountResult.data || discountResult;
+        if (Array.isArray(discountsData)) {
+          setDiscounts(discountsData);
+        } else {
+          console.warn('Discounts data is not in expected format:', discountResult);
+          setDiscounts([]);
+        }
 
         // Initialize form
         setFormData(prev => ({
@@ -60,8 +71,10 @@ const BookingPage = () => {
           packageId: packageId
         }));
         
-        // Initial price calculation
-        setTotalPrice(packageResult.package.basePrice);
+        // Initial price calculation if package data is available
+        if (packageData && packageData.basePrice) {
+          setTotalPrice(packageData.basePrice);
+        }
         
         setLoading(false);
       } catch (err) {
@@ -75,24 +88,24 @@ const BookingPage = () => {
   }, [packageId, navigate]);
 
   useEffect(() => {
-    if (!selectedPackage) return;
-    
-    calculateTotalPrice();
-  }, [formData.customServices, formData.paymentInterval, selectedPackage]);
+    if (selectedPackage) {
+      calculateTotalPrice();
+    }
+  }, [formData.customServices, formData.paymentInterval, selectedPackage, allServices]);
 
   const calculateTotalPrice = () => {
-    if (!selectedPackage || !allServices) return;
+    if (!selectedPackage) return;
 
     // Base package price
-    let price = selectedPackage.basePrice;
+    let price = selectedPackage.basePrice || 0;
     
-    // Add prices for custom services
-    if (formData.customServices.length > 0) {
+    // Add prices for custom services if services exist
+    if (formData.customServices.length > 0 && allServices && allServices.length > 0) {
       const selectedServices = allServices.filter(service => 
         formData.customServices.includes(service._id)
       );
       
-      price += selectedServices.reduce((sum, service) => sum + service.price, 0);
+      price += selectedServices.reduce((sum, service) => sum + (service.price || 0), 0);
     }
     
     // Apply payment interval multiplier
@@ -102,15 +115,17 @@ const BookingPage = () => {
       'Yearly': 12
     };
     
-    let finalPrice = price * intervalMultiplier[formData.paymentInterval];
+    let finalPrice = price * (intervalMultiplier[formData.paymentInterval] || 1);
     
-    // Apply discount if applicable
-    const relevantDiscount = discounts.find(d => d.paymentInterval === formData.paymentInterval);
-    if (relevantDiscount) {
-      setAppliedDiscount(relevantDiscount);
-      finalPrice *= (1 - (relevantDiscount.percentage / 100));
-    } else {
-      setAppliedDiscount(null);
+    // Apply discount if applicable and discounts exist
+    if (discounts && discounts.length > 0) {
+      const relevantDiscount = discounts.find(d => d.paymentInterval === formData.paymentInterval);
+      if (relevantDiscount) {
+        setAppliedDiscount(relevantDiscount);
+        finalPrice *= (1 - (relevantDiscount.percentage / 100));
+      } else {
+        setAppliedDiscount(null);
+      }
     }
     
     setTotalPrice(finalPrice);
@@ -199,13 +214,22 @@ const BookingPage = () => {
     );
   }
 
-  // Only show services that aren't already included in the package
-  const availableServices = allServices.filter(service => 
-    !selectedPackage.includedServices.some(includedId => 
-      // Compare service IDs, handling both string IDs and object IDs
-      (typeof includedId === 'object' ? includedId._id : includedId) === service._id
-    )
-  );
+  // Only proceed with service rendering if selectedPackage and allServices are loaded
+  let availableServices = [];
+  if (selectedPackage && allServices && allServices.length > 0) {
+    // Ensure includedServices is an array before filtering
+    const includedServices = selectedPackage.includedServices || [];
+    
+    // Only show services that aren't already included in the package
+    availableServices = allServices.filter(service => 
+      !includedServices.some(includedId => {
+        // Compare service IDs, handling both string IDs and object IDs
+        const includedServiceId = typeof includedId === 'object' ? 
+          (includedId._id || includedId.id) : includedId;
+        return includedServiceId === service._id;
+      })
+    );
+  }
 
   return (
     <div className="bg-gray-100 min-h-screen py-12">
@@ -392,13 +416,13 @@ const BookingPage = () => {
                   <span>${selectedPackage?.basePrice}</span>
                 </div>
                 
-                {formData.customServices.length > 0 && (
+                {formData.customServices.length > 0 && allServices && allServices.length > 0 && (
                   <div className="flex justify-between">
                     <span>Additional Services:</span>
                     <span>
                       ${allServices
                         .filter(service => formData.customServices.includes(service._id))
-                        .reduce((sum, service) => sum + service.price, 0)
+                        .reduce((sum, service) => sum + (service.price || 0), 0)
                       }
                     </span>
                   </div>

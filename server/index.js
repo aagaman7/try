@@ -3,6 +3,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const paymentRoutes = require('./routes/paymentRoutes');
+
 
 // Existing routes
 const authRoutes = require("./routes/authRoutes");
@@ -44,6 +46,7 @@ app.use("/api/services", serviceRoutes);
 app.use("/api/discounts", discountRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use('/api/payments', paymentRoutes);
 // app.use("/api/goals", goalRoutes);
 
 const PORT = process.env.PORT || 5000;
