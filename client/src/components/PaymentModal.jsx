@@ -21,6 +21,8 @@ const PaymentModal = ({ booking, totalPrice, onClose }) => {
     });
   };
 
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -29,6 +31,7 @@ const PaymentModal = ({ booking, totalPrice, onClose }) => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
+        setError('Authentication token is missing. Please log in again.');
         navigate('/login');
         return;
       }
@@ -40,15 +43,10 @@ const PaymentModal = ({ booking, totalPrice, onClose }) => {
         throw new Error('No client secret received from server');
       }
       
-      // Simulate card processing with the client secret
-      // In a real app, you would use Stripe.js Elements to handle this
-      console.log('Processing payment with client secret:', response.clientSecret);
-      
       // Confirm the payment with our API
       const paymentConfirmation = await apiService.confirmPayment({
         bookingId: response.booking._id,
-        paymentMethodId: 'pm_simulated_payment', // This would come from Stripe Elements in real app
-        cardInfo: cardInfo // You might not send raw card info in a real app
+        paymentMethodId: 'pm_simulated_payment'
       }, token);
       
       if (paymentConfirmation.success) {
@@ -68,6 +66,8 @@ const PaymentModal = ({ booking, totalPrice, onClose }) => {
       setLoading(false);
     }
   };
+
+
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
