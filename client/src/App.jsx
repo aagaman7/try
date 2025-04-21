@@ -10,7 +10,6 @@ import Register from './pages/Register';
 import TrainerBookingPage from './pages/TrainerBookingPage';
 import MembershipPage from './pages/MembershipPage';
 import BookingPage from './pages/BookingPage';
-// import ConfirmationPage from './pages/ConfirmationPage';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { Elements } from '@stripe/react-stripe-js';
@@ -32,7 +31,6 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/membership" element={<MembershipPage />} />
               <Route path="/booking/:packageId" element={<BookingPage />} />
-              {/* <Route path="/confirmation" element={<ConfirmationPage />} /> */}
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
@@ -41,7 +39,8 @@ function App() {
               
               {/* Protected Route */}
               <Route element={<ProtectedRoute />}>
-                {/* Add protected routes here */}
+                
+
               </Route>
             </Routes>
           </Elements>

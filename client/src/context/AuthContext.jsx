@@ -1,70 +1,104 @@
-// src/context/AuthContext.jsx
-import React, { createContext, useState, useEffect } from 'react';
-import authService from '../services/authService';
+// src/contexts/AuthContext.jsx
+import React, { createContext, useState, useEffect } from "react";
 
 export const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
+export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const token = localStorage.getItem('token');
-    if (token) {
-      authService.getCurrentUser()
-        .then(user => {
-          setCurrentUser(user);
-          setLoading(false);
-        })
-        .catch(err => {
-          localStorage.removeItem('token');
-          setError(err.message);
-          setLoading(false);
-        });
-    } else {
+    try {
+      const user = localStorage.getItem("user");
+      if (user) {
+        setCurrentUser(JSON.parse(user));
+      }
+    } catch (error) {
+      console.error("Error loading user from localStorage:", error);
+    } finally {
       setLoading(false);
     }
   }, []);
 
+  // Sign up function
+  const signup = async (email, password, name) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        try {
+          const newUser = { id: Date.now().toString(), email, name, password };
+          localStorage.setItem("user", JSON.stringify(newUser));
+          setCurrentUser(newUser);
+          resolve(newUser);
+        } catch (error) {
+          reject(error);
+        }
+      }, 1000);
+    });
+  };
+
+  // Login function
   const login = async (email, password) => {
-    try {
-      setLoading(true);
-      const response = await authService.login(email, password);
-      localStorage.setItem('token', response.token);
-      setCurrentUser(response.user);
-      setError(null);
-      return response.user;
-    } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        try {
+          const storedUser = localStorage.getItem("user");
+          if (!storedUser) {
+            return reject(new Error("User not found. Please sign up first."));
+          }
+
+          const user = JSON.parse(storedUser);
+
+          if (user.email !== email || user.password !== password) {
+            return reject(new Error("Invalid email or password."));
+          }
+
+          setCurrentUser(user);
+          resolve(user);
+        } catch (error) {
+          reject(error);
+        }
+      }, 1000);
+    });
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setCurrentUser(null);
+  // Logout function
+  const logout = async () => {
+    return new Promise((resolve) => {
+      localStorage.removeItem("user");
+      setCurrentUser(null);
+      resolve();
+    });
   };
 
-  const isAdmin = () => {
-    return currentUser?.role === 'Admin';
+  // Reset password function (dummy function)
+  const resetPassword = async (email) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        try {
+          resolve({ success: true });
+        } catch (error) {
+          reject(error);
+        }
+      }, 1000);
+    });
   };
 
   const value = {
     currentUser,
-    loading,
-    error,
+    signup,
     login,
     logout,
-    isAdmin
+    resetPassword,
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
+}
+import { useContext } from "react";
+
+export const useAuth = () => {
+  return useContext(AuthContext);
 };
