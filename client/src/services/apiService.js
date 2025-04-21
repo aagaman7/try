@@ -119,7 +119,7 @@ const apiService = {
     }
   },
 
-  // Specific API endpoints - using the enhanced methods above
+  // Specific API endpoints
   getPackages: async () => {
     try {
       return await api.get('packages');
@@ -152,9 +152,29 @@ const apiService = {
     }
   },
   
-  bookMembership: async (bookingData, token) => apiService.post('bookings', bookingData, token),
+  bookMembership: async (bookingData) => {
+    try {
+      return await api.post('bookings', bookingData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to book membership');
+    }
+  },
   
-  confirmPayment: async (paymentData, token) => apiService.post('payments/confirm', paymentData, token),
+  processPayment: async (paymentData) => {
+    try {
+      return await api.post('payments', paymentData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to process payment');
+    }
+  },
+  
+  confirmPayment: async (confirmationData) => {
+    try {
+      return await api.post('payments/confirm', confirmationData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to confirm payment');
+    }
+  },
   
   checkAvailability: async (timeSlot) => {
     try {
@@ -163,8 +183,6 @@ const apiService = {
       throw error.response?.data || new Error('Failed to check availability');
     }
   },
-  
-  processPayment: async (paymentData, token) => apiService.post('payments', paymentData, token),
   
   getAllDiscounts: async (params = {}) => {
     try {
@@ -178,44 +196,7 @@ const apiService = {
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch discounts');
     }
-  },
-  // Add these methods to your existing apiService.js file:
-
-processPayment: async (paymentData) => {
-  try {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('User not authenticated');
-    }
-    
-    const response = await axios.post(
-      `${API_BASE_URL}/payments`, 
-      paymentData,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || new Error('Failed to process payment');
   }
-},
-
-confirmPayment: async (confirmationData) => {
-  try {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('User not authenticated');
-    }
-    
-    const response = await axios.post(
-      `${API_BASE_URL}/payments/confirm`, 
-      confirmationData,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || new Error('Failed to confirm payment');
-  }
-}
 };
 
 export default apiService;

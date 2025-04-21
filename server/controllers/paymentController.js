@@ -12,15 +12,34 @@ exports.processPayment = async (req, res) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    const { 
-      packageId, 
-      customServices = [], 
-      timeSlot, 
-      workoutDaysPerWeek, 
-      goals,
-      paymentInterval,
-      amount 
-    } = req.body;
+    // Handle both data formats: direct fields or nested in booking object
+    let packageId, customServices, timeSlot, workoutDaysPerWeek, goals, paymentInterval, amount;
+    
+    if (req.body.packageId) {
+      // Direct fields
+      packageId = req.body.packageId;
+      customServices = req.body.customServices || [];
+      timeSlot = req.body.timeSlot;
+      workoutDaysPerWeek = req.body.workoutDaysPerWeek;
+      goals = req.body.goals;
+      paymentInterval = req.body.paymentInterval;
+      amount = req.body.amount;
+    } else {
+      // Nested in booking object
+      const booking = req.body;
+      packageId = booking.packageId;
+      customServices = booking.customServices || [];
+      timeSlot = booking.timeSlot;
+      workoutDaysPerWeek = booking.workoutDaysPerWeek;
+      goals = booking.goals;
+      paymentInterval = booking.paymentInterval;
+      amount = booking.amount || req.body.amount;
+    }
+
+    // Validate required fields
+    if (!packageId) {
+      return res.status(400).json({ message: 'Missing required package ID' });
+    }
 
     // Find package and validate
     const packageData = await Package.findById(packageId).populate('includedServices');
@@ -32,7 +51,7 @@ exports.processPayment = async (req, res) => {
     let basePrice = packageData.basePrice;
     
     // Add custom services price if any
-    if (customServices.length > 0) {
+    if (customServices && customServices.length > 0) {
       const servicesPrices = await Service.find({ _id: { $in: customServices } });
       basePrice += servicesPrices.reduce((sum, service) => sum + service.price, 0);
     }
@@ -44,7 +63,7 @@ exports.processPayment = async (req, res) => {
       'Yearly': 12
     };
 
-    let totalPrice = basePrice * intervalMultiplier[paymentInterval];
+    let totalPrice = basePrice * (intervalMultiplier[paymentInterval] || 1);
 
     // Find applicable discount
     const discount = await Discount.findOne({ 
@@ -56,13 +75,18 @@ exports.processPayment = async (req, res) => {
       totalPrice *= (1 - (discount.percentage / 100));
     }
 
+    // Use calculated amount or provided amount
+    const finalAmount = amount || totalPrice;
+
     // Create payment intent with Stripe
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(totalPrice * 100), // Convert to cents
+      amount: Math.round(finalAmount * 100), // Convert to cents
       currency: 'usd',
       metadata: {
         userId: req.user.id,
-        packageId: packageId
+        packageId: packageId,
+        timeSlot: timeSlot || '',
+        paymentInterval: paymentInterval || 'Monthly'
       }
     });
 
@@ -86,6 +110,10 @@ exports.confirmPayment = async (req, res) => {
 
     const { paymentIntentId, bookingId, amount } = req.body;
 
+    if (!paymentIntentId) {
+      return res.status(400).json({ message: 'Payment intent ID is required' });
+    }
+
     // Verify payment intent with Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     
@@ -97,31 +125,47 @@ exports.confirmPayment = async (req, res) => {
     let booking = await Booking.findOne({ stripePaymentId: paymentIntentId });
     
     if (!booking) {
+      // Extract packageId from either bookingId parameter or payment intent metadata
+      const packageId = bookingId || paymentIntent.metadata.packageId;
+      
+      if (!packageId) {
+        return res.status(400).json({ message: 'Package ID not found in request or payment metadata' });
+      }
+
       // Get package details to create the booking
-      const packageData = await Package.findById(bookingId);
+      const packageData = await Package.findById(packageId);
       if (!packageData) {
         return res.status(404).json({ message: 'Package not found' });
       }
 
-      // Determine payment interval and end date
-      const paymentDetails = req.body;
+      // Extract information from payment intent metadata
+      const paymentInterval = paymentIntent.metadata.paymentInterval || 'Monthly';
+      const timeSlot = paymentIntent.metadata.timeSlot || '';
+
+      // Determine interval and end date
       const intervalMultiplier = {
         'Monthly': 1,
         '3 Months': 3,
         'Yearly': 12
       };
-      const intervalInDays = (intervalMultiplier[paymentDetails.paymentInterval] || 1) * 30;
+      const intervalInDays = (intervalMultiplier[paymentInterval] || 1) * 30;
+
+      // Handle goals format (string or array)
+      let goals = [];
+      if (req.body.goals) {
+        goals = Array.isArray(req.body.goals) ? req.body.goals : [req.body.goals];
+      }
 
       // Create new booking
       booking = new Booking({
         user: req.user.id,
-        package: bookingId,
-        customServices: paymentDetails.customServices || [],
-        timeSlot: paymentDetails.timeSlot,
-        workoutDaysPerWeek: paymentDetails.workoutDaysPerWeek || 3,
-        goals: paymentDetails.goals,
-        paymentInterval: paymentDetails.paymentInterval || 'Monthly',
-        totalPrice: amount,
+        package: packageId,
+        customServices: req.body.customServices || [],
+        timeSlot: timeSlot,
+        workoutDaysPerWeek: req.body.workoutDaysPerWeek || 3,
+        goals: goals,
+        paymentInterval: paymentInterval,
+        totalPrice: amount || (paymentIntent.amount / 100), // Convert cents back to dollars
         stripePaymentId: paymentIntentId,
         paymentStatus: 'completed',
         endDate: new Date(Date.now() + (intervalInDays * 24 * 60 * 60 * 1000))
@@ -140,7 +184,11 @@ exports.confirmPayment = async (req, res) => {
       await booking.save();
     }
 
-    res.json({ success: true, booking });
+    res.json({ 
+      success: true, 
+      booking,
+      message: 'Payment confirmed successfully'
+    });
   } catch (error) {
     console.error('Error confirming payment:', error);
     res.status(500).json({ message: 'Error confirming payment', error: error.message });
