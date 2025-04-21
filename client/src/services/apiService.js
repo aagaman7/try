@@ -2,67 +2,127 @@ import axios from 'axios';
 
 const API_BASE_URL = "http://localhost:5000/api";
 
+// Create axios instance with base URL
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Intercept requests to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Handle API errors
+api.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    const errorMessage = 
+      error.response?.data?.message || 
+      error.response?.data || 
+      error.message || 
+      'Something went wrong';
+    
+    // Handle token expiration
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Only redirect if we're not already on the login page
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+    }
+    
+    return Promise.reject(typeof errorMessage === 'string' ? new Error(errorMessage) : errorMessage);
+  }
+);
+
 const apiService = {
+  // Auth token management
+  setAuthToken: (token) => {
+    if (token) {
+      api.defaults.headers.common.Authorization = `Bearer ${token}`;
+    }
+  },
+
+  clearAuthToken: () => {
+    delete api.defaults.headers.common.Authorization;
+  },
+
+  // Generic API methods
   post: async (endpoint, data, token = null) => {
     try {
-      const authToken = token || localStorage.getItem('token');
-      const config = authToken
-          ? { headers: { Authorization: `Bearer ${authToken}` } }
-        : {};
-       
-      const response = await axios.post(`${API_BASE_URL}/${endpoint}`, data, config);
-      return response.data;
+      if (token) {
+        // For one-time use of a specific token
+        return await axios.post(`${API_BASE_URL}/${endpoint}`, data, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(response => response.data);
+      }
+      // Use the interceptor for regular calls
+      return await api.post(endpoint, data);
     } catch (error) {
-      throw error.response?.data || new Error('Something went wrong');
+      throw error;
     }
   },
 
   get: async (endpoint, token = null) => {
     try {
-      const authToken = token || localStorage.getItem('token');
-      const config = authToken
-          ? { headers: { Authorization: `Bearer ${authToken}` } }
-        : {};
-       
-      const response = await axios.get(`${API_BASE_URL}/${endpoint}`, config);
-      return response.data;
+      if (token) {
+        // For one-time use of a specific token
+        return await axios.get(`${API_BASE_URL}/${endpoint}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(response => response.data);
+      }
+      // Use the interceptor for regular calls
+      return await api.get(endpoint);
     } catch (error) {
-      throw error.response?.data || new Error('Something went wrong');
+      throw error;
     }
   },
 
   put: async (endpoint, data, token = null) => {
     try {
-      const authToken = token || localStorage.getItem('token');
-      const config = authToken
-          ? { headers: { Authorization: `Bearer ${authToken}` } }
-        : {};
-       
-      const response = await axios.put(`${API_BASE_URL}/${endpoint}`, data, config);
-      return response.data;
+      if (token) {
+        // For one-time use of a specific token
+        return await axios.put(`${API_BASE_URL}/${endpoint}`, data, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(response => response.data);
+      }
+      // Use the interceptor for regular calls
+      return await api.put(endpoint, data);
     } catch (error) {
-      throw error.response?.data || new Error('Something went wrong');
+      throw error;
     }
   },
 
   delete: async (endpoint, token = null) => {
     try {
-      const authToken = token || localStorage.getItem('token');
-      const config = authToken
-          ? { headers: { Authorization: `Bearer ${authToken}` } }
-        : {};
-       
-      const response = await axios.delete(`${API_BASE_URL}/${endpoint}`, config);
-      return response.data;
+      if (token) {
+        // For one-time use of a specific token
+        return await axios.delete(`${API_BASE_URL}/${endpoint}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(response => response.data);
+      }
+      // Use the interceptor for regular calls
+      return await api.delete(endpoint);
     } catch (error) {
-      throw error.response?.data || new Error('Something went wrong');
+      throw error;
     }
   },
 
+  // Specific API endpoints - using the enhanced methods above
   getPackages: async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/packages`);
-      return response.data;
+      return await api.get('packages');
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch packages');
     }
@@ -70,8 +130,7 @@ const apiService = {
   
   getPackageById: async (packageId) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/packages/${packageId}`);
-      return response.data;
+      return await api.get(`packages/${packageId}`);
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch package details');
     }
@@ -79,8 +138,7 @@ const apiService = {
   
   getServices: async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/services`);
-      return response.data;
+      return await api.get('services');
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch services');
     }
@@ -88,30 +146,26 @@ const apiService = {
   
   getTrainers: async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/trainers`);
-      return response.data;
+      return await api.get('trainers');
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch trainers');
     }
   },
   
-  bookMembership: async (bookingData, token) => apiService.post(`bookings`, bookingData, token),
+  bookMembership: async (bookingData, token) => apiService.post('bookings', bookingData, token),
   
-  // Add new method for payment confirmation
-  confirmPayment: async (paymentData, token) => apiService.post(`payments/confirm`, paymentData, token),
+  confirmPayment: async (paymentData, token) => apiService.post('payments/confirm', paymentData, token),
   
   checkAvailability: async (timeSlot) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/bookings/check-availability?timeSlot=${timeSlot}`);
-      return response.data;
+      return await api.get(`bookings/check-availability?timeSlot=${timeSlot}`);
     } catch (error) {
       throw error.response?.data || new Error('Failed to check availability');
     }
   },
   
-  processPayment: async (paymentData, token) => apiService.post(`payments`, paymentData, token),
+  processPayment: async (paymentData, token) => apiService.post('payments', paymentData, token),
   
-  // Added function to get all discounts
   getAllDiscounts: async (params = {}) => {
     try {
       let queryString = '';
@@ -120,12 +174,48 @@ const apiService = {
         queryString = '?' + new URLSearchParams(params).toString();
       }
       
-      const response = await axios.get(`${API_BASE_URL}/discounts${queryString}`);
-      return response.data;
+      return await api.get(`discounts${queryString}`);
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch discounts');
     }
+  },
+  // Add these methods to your existing apiService.js file:
+
+processPayment: async (paymentData) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('User not authenticated');
+    }
+    
+    const response = await axios.post(
+      `${API_BASE_URL}/payments`, 
+      paymentData,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || new Error('Failed to process payment');
   }
+},
+
+confirmPayment: async (confirmationData) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('User not authenticated');
+    }
+    
+    const response = await axios.post(
+      `${API_BASE_URL}/payments/confirm`, 
+      confirmationData,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || new Error('Failed to confirm payment');
+  }
+}
 };
 
 export default apiService;

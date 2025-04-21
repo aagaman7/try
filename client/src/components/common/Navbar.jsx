@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-// import { useAuth } from '../../context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  // const { currentUser, logout } = useAuth();
-  const {currentUser, setCurrentUser}= useState(false);
-    const location = useLocation();
+  const { currentUser, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path) => {
     return location.pathname === path ? "text-blue-600" : "text-gray-700 hover:text-blue-600";
@@ -16,13 +16,21 @@ const Navbar = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
-  // const handleLogout = async () => {
-  //   try {
-  //     await logout();
-  //   } catch (error) {
-  //     console.error("Failed to log out", error);
-  //   }
-  // };
+  const handleLogout = async () => {
+    try {
+      const success = await logout();
+      if (success) {
+        navigate('/'); // Redirect to home page after successful logout
+      }
+    } catch (error) {
+      console.error("Failed to log out", error);
+    }
+  };
+
+  // Close mobile menu when changing routes
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location.pathname]);
 
   return (
     <nav className="fixed top-0 w-full bg-white shadow-md z-50">
@@ -38,25 +46,32 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-8">
             <Link to="/" className={`font-medium ${isActive('/')}`}>Home</Link>
             <Link to="/membership" className={`font-medium ${isActive('/membership')}`}>Membership</Link>
-            <Link to="/schedule" className={`font-medium ${isActive('/Schedule')}`}>Schedule</Link>
+            <Link to="/schedule" className={`font-medium ${isActive('/schedule')}`}>Schedule</Link>
             <Link to="/about" className={`font-medium ${isActive('/about')}`}>About Us</Link>
             <Link to="/contact" className={`font-medium ${isActive('/contact')}`}>Contact</Link>
             
             {currentUser ? (
-              <div className="relative">
-                <button className="bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg px-4 py-2 transition-colors">
-                  Dashboard
-                </button>
+              <div className="relative flex items-center space-x-4">
+                <Link to="/dashboard" className="flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition-colors">
+                    {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                </Link>
                 <button 
-                  // onClick={handleLogout}
-                  className="ml-4 text-gray-600 hover:text-red-500"
+                  onClick={handleLogout}
+                  className="text-gray-600 hover:text-red-500"
                 >
                   Logout
                 </button>
               </div>
             ) : (
-              <Link to="/login" className="bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg px-4 py-2 transition-colors">
-                Login
+              <Link to="/login" className="flex items-center space-x-2">
+                <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span className="font-medium">Login</span>
               </Link>
             )}
           </div>
@@ -103,6 +118,13 @@ const Navbar = () => {
               Membership
             </Link>
             <Link 
+              to="/schedule" 
+              className={`px-3 py-2 rounded-md text-base font-medium ${isActive('/schedule')}`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Schedule
+            </Link>
+            <Link 
               to="/about" 
               className={`px-3 py-2 rounded-md text-base font-medium ${isActive('/about')}`}
               onClick={() => setIsMenuOpen(false)}
@@ -121,17 +143,20 @@ const Navbar = () => {
               <div className="flex flex-col space-y-2">
                 <Link 
                   to="/dashboard" 
-                  className="bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg px-4 py-2 text-center"
+                  className="flex items-center space-x-2 px-3 py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Dashboard
+                  <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center">
+                    {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                  <span>My Profile</span>
                 </Link>
                 <button 
                   onClick={() => {
-                    // handleLogout();
+                    handleLogout();
                     setIsMenuOpen(false);
                   }}
-                  className="text-gray-600 hover:text-red-500 font-medium"
+                  className="text-gray-600 hover:text-red-500 font-medium px-3 py-2 text-left"
                 >
                   Logout
                 </button>
@@ -139,10 +164,15 @@ const Navbar = () => {
             ) : (
               <Link 
                 to="/login" 
-                className="bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg px-4 py-2 text-center"
+                className="flex items-center space-x-2 px-3 py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Login
+                <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span>Login</span>
               </Link>
             )}
           </div>

@@ -1,5 +1,6 @@
-// src/contexts/AuthContext.jsx
-import React, { createContext, useState, useEffect } from "react";
+// src/context/AuthContext.jsx
+import React, { createContext, useState, useEffect, useContext } from "react";
+import apiService from "../services/apiService";
 
 export const AuthContext = createContext();
 
@@ -7,11 +8,17 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Load user from localStorage on initial render
   useEffect(() => {
     try {
+      const token = localStorage.getItem("token");
       const user = localStorage.getItem("user");
-      if (user) {
+      
+      if (token && user) {
         setCurrentUser(JSON.parse(user));
+        
+        // Set the token in the apiService for future requests
+        apiService.setAuthToken(token);
       }
     } catch (error) {
       console.error("Error loading user from localStorage:", error);
@@ -20,75 +27,46 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // Sign up function
-  const signup = async (email, password, name) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        try {
-          const newUser = { id: Date.now().toString(), email, name, password };
-          localStorage.setItem("user", JSON.stringify(newUser));
-          setCurrentUser(newUser);
-          resolve(newUser);
-        } catch (error) {
-          reject(error);
-        }
-      }, 1000);
-    });
-  };
-
-  // Login function
-  const login = async (email, password) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        try {
-          const storedUser = localStorage.getItem("user");
-          if (!storedUser) {
-            return reject(new Error("User not found. Please sign up first."));
-          }
-
-          const user = JSON.parse(storedUser);
-
-          if (user.email !== email || user.password !== password) {
-            return reject(new Error("Invalid email or password."));
-          }
-
-          setCurrentUser(user);
-          resolve(user);
-        } catch (error) {
-          reject(error);
-        }
-      }, 1000);
-    });
+  // Login function - accepts a user object directly
+  const login = (user) => {
+    setCurrentUser(user);
   };
 
   // Logout function
   const logout = async () => {
-    return new Promise((resolve) => {
+    try {
+      // Optional: Call logout endpoint if your API has one
+      // await apiService.post("auth/logout");
+      
+      // Clear local storage
+      localStorage.removeItem("token");
       localStorage.removeItem("user");
+      
+      // Clear auth token from API service
+      apiService.clearAuthToken();
+      
+      // Update state
       setCurrentUser(null);
-      resolve();
-    });
+      
+      return true;
+    } catch (error) {
+      console.error("Logout error:", error);
+      return false;
+    }
   };
 
-  // Reset password function (dummy function)
-  const resetPassword = async (email) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        try {
-          resolve({ success: true });
-        } catch (error) {
-          reject(error);
-        }
-      }, 1000);
-    });
+  // Optional: Add a function to update user profile
+  const updateUserProfile = (userData) => {
+    const updatedUser = { ...currentUser, ...userData };
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+    setCurrentUser(updatedUser);
   };
 
   const value = {
     currentUser,
-    signup,
     login,
     logout,
-    resetPassword,
+    updateUserProfile,
   };
 
   return (
@@ -97,8 +75,8 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
-import { useContext } from "react";
 
+// Export the useAuth hook for easy usage
 export const useAuth = () => {
   return useContext(AuthContext);
 };
