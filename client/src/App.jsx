@@ -11,7 +11,6 @@ import TrainerBookingPage from './pages/TrainerBookingPage';
 import MembershipPage from './pages/MembershipPage';
 import BookingPage from './pages/BookingPage';
 import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/auth/ProtectedRoute';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 
@@ -37,11 +36,7 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/schedule" element={<TrainerBookingPage/>}/>
               
-              {/* Protected Route */}
-              <Route element={<ProtectedRoute />}>
-                
-
-              </Route>
+              {/* Removed the ProtectedRoute section completely */}
             </Routes>
           </Elements>
         </main>
