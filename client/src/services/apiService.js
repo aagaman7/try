@@ -160,21 +160,7 @@ const apiService = {
     }
   },
   
-  processPayment: async (paymentData) => {
-    try {
-      return await api.post('payments', paymentData);
-    } catch (error) {
-      throw error.response?.data || new Error('Failed to process payment');
-    }
-  },
-  
-  confirmPayment: async (confirmationData) => {
-    try {
-      return await api.post('payments/confirm', confirmationData);
-    } catch (error) {
-      throw error.response?.data || new Error('Failed to confirm payment');
-    }
-  },
+
   
   checkAvailability: async (timeSlot) => {
     try {

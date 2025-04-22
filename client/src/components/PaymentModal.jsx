@@ -1,215 +1,183 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import apiService from '../services/apiService';
 
 const PaymentModal = ({ booking, totalPrice, onClose }) => {
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+  const [clientSecret, setClientSecret] = useState('');
   const stripe = useStripe();
   const elements = useElements();
-  const [processing, setProcessing] = useState(false);
-  const [succeeded, setSucceeded] = useState(false);
-  const [error, setError] = useState(null);
-  const [clientSecret, setClientSecret] = useState('');
-  const [paymentInProgress, setPaymentInProgress] = useState(false);
-  const [debugInfo, setDebugInfo] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Create payment intent as soon as the modal opens
-    const createPaymentIntent = async () => {
+    // Initialize payment process when modal opens
+    const initiatePayment = async () => {
       try {
-        setDebugInfo('Creating payment intent...');
-        
-        // Make sure we send all necessary information
-        const paymentData = {
-          packageId: booking.packageId,
-          customServices: booking.customServices || [],
-          timeSlot: booking.timeSlot,
-          workoutDaysPerWeek: booking.workoutDaysPerWeek,
-          goals: booking.goals,
-          paymentInterval: booking.paymentInterval,
-          amount: totalPrice
-        };
-        
-        console.log('Payment data being sent:', paymentData);
-        
-        const response = await apiService.processPayment(paymentData);
-        console.log('Payment intent response:', response);
-        
-        if (response && response.clientSecret) {
-          setClientSecret(response.clientSecret);
-          setDebugInfo('Payment intent created successfully');
-        } else {
-          setError('Invalid response from payment service');
-          setDebugInfo('Response missing client secret');
-        }
+        setProcessing(true);
+        // Send booking data to create payment intent
+        const response = await apiService.bookMembership(booking);
+        setClientSecret(response.clientSecret);
+        setProcessing(false);
       } catch (err) {
-        console.error('Error creating payment intent:', err);
-        setError(`Failed to initialize payment: ${err.message || 'Unknown error'}`);
-        setDebugInfo(`Error details: ${JSON.stringify(err)}`);
+        console.error('Payment initialization error:', err);
+        setError(err.message || 'Failed to initialize payment. Please try again.');
+        setProcessing(false);
       }
     };
 
-    if (booking && totalPrice > 0) {
-      createPaymentIntent();
+    if (booking) {
+      initiatePayment();
     }
-  }, [booking, totalPrice]);
+  }, [booking]);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
     if (!stripe || !elements) {
-      setError("Stripe hasn't loaded yet. Please try again.");
+      // Stripe.js hasn't loaded yet
       return;
     }
-    
-    if (!clientSecret) {
-      setError("Payment configuration incomplete. Please wait or try again.");
-      return;
-    }
-    
+
     setProcessing(true);
-    setPaymentInProgress(true);
 
     try {
-      const result = await stripe.confirmCardPayment(clientSecret, {
+      const cardElement = elements.getElement(CardElement);
+
+      // Confirm card payment
+      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
-          card: elements.getElement(CardElement),
+          card: cardElement,
           billing_details: {
-            name: 'Member Name', // Ideally get this from user context
+            name: JSON.parse(localStorage.getItem('user'))?.name || 'Unknown User',
           },
-        }
+        },
       });
 
-      if (result.error) {
-        setError(`Payment failed: ${result.error.message}`);
-        console.error('Payment error:', result.error);
-      } else {
-        if (result.paymentIntent.status === 'succeeded') {
-          // Send confirmation to your backend
-          try {
-            await apiService.confirmPayment({
-              paymentIntentId: result.paymentIntent.id,
-              bookingId: booking.packageId,
-              amount: totalPrice
-            });
-            
-            setSucceeded(true);
-            setError(null);
-          } catch (err) {
-            console.error('Error confirming payment:', err);
-            setError('Payment processed but failed to complete booking. Please contact support.');
-          }
-        }
+      if (error) {
+        setError(`Payment failed: ${error.message}`);
+        setProcessing(false);
+      } else if (paymentIntent.status === 'succeeded') {
+        setSuccess(true);
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
       }
     } catch (err) {
-      console.error('Payment submission error:', err);
-      setError(`Error processing payment: ${err.message}`);
-    } finally {
+      console.error('Payment processing error:', err);
+      setError('An unexpected error occurred. Please try again.');
       setProcessing(false);
-      setPaymentInProgress(false);
     }
-  };
-
-  const cardElementOptions = {
-    style: {
-      base: {
-        color: '#32325d',
-        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-        fontSmoothing: 'antialiased',
-        fontSize: '16px',
-        '::placeholder': {
-          color: '#aab7c4',
-        },
-      },
-      invalid: {
-        color: '#fa755a',
-        iconColor: '#fa755a',
-      },
-    },
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
-        <button 
-          onClick={onClose}
-          disabled={processing}
-          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 focus:outline-none"
-        >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-        </button>
-        
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Complete Your Payment</h2>
-        
-        {succeeded ? (
-          <div className="text-center">
-            <div className="mb-4 flex justify-center">
-              <svg className="h-16 w-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-              </svg>
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        {/* Background overlay */}
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose}></div>
+
+        {/* Modal panel */}
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div className="sm:flex sm:items-start">
+              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Complete Your Payment</h3>
+                
+                {success ? (
+                  <div className="py-8 text-center">
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                      <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <h2 className="mt-3 text-lg font-medium text-gray-900">Payment Successful!</h2>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Thank you for your payment. Redirecting you to your dashboard...
+                    </p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit}>
+                    <div className="mb-6">
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="flex justify-between mb-2">
+                          <span className="text-gray-700">Membership Plan:</span>
+                          <span className="font-medium">{booking?.packageName}</span>
+                        </div>
+                        <div className="flex justify-between mb-2">
+                          <span className="text-gray-700">Payment Interval:</span>
+                          <span className="font-medium">{booking?.paymentInterval}</span>
+                        </div>
+                        <div className="flex justify-between font-bold">
+                          <span>Total Amount:</span>
+                          <span>${totalPrice.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Card Details
+                      </label>
+                      <div className="border border-gray-300 rounded-md p-4">
+                        <CardElement
+                          options={{
+                            style: {
+                              base: {
+                                fontSize: '16px',
+                                color: '#424770',
+                                '::placeholder': {
+                                  color: '#aab7c4',
+                                },
+                              },
+                              invalid: {
+                                color: '#9e2146',
+                              },
+                            },
+                          }}
+                        />
+                      </div>
+                      {error && (
+                        <div className="mt-2 text-sm text-red-600">{error}</div>
+                      )}
+                    </div>
+
+                    <div className="mt-6 flex justify-end space-x-3">
+                      <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={processing}
+                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={processing || !stripe}
+                        className={`inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                          processing ? 'opacity-70 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        {processing ? (
+                          <div className="flex items-center">
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Processing...
+                          </div>
+                        ) : (
+                          `Pay $${totalPrice.toFixed(2)}`
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
             </div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">Payment Successful!</h3>
-            <p className="text-gray-600 mb-6">Your membership has been activated. You can now access all the features.</p>
-            <button
-              onClick={onClose}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-200"
-            >
-              Close
-            </button>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <div className="mb-6">
-              <p className="font-medium text-gray-700 mb-2">Amount to Pay</p>
-              <p className="text-2xl font-bold text-gray-800">${totalPrice.toFixed(2)}</p>
-            </div>
-            
-            <div className="mb-6">
-              <label htmlFor="card-element" className="block text-sm font-medium text-gray-700 mb-2">
-                Credit or debit card
-              </label>
-              <div className="border border-gray-300 p-4 rounded-md">
-                <CardElement id="card-element" options={cardElementOptions} />
-              </div>
-            </div>
-            
-            {error && (
-              <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            )}
-            
-            {debugInfo && (
-              <div className="mb-4 text-xs text-gray-500">
-                <p>{debugInfo}</p>
-              </div>
-            )}
-            
-            <button
-              disabled={processing || paymentInProgress || !stripe || !clientSecret}
-              className={`w-full py-3 px-4 rounded-md text-white font-medium ${
-                processing || paymentInProgress || !stripe || !clientSecret
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
-              {processing ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Processing...
-                </div>
-              ) : (
-                'Pay Now'
-              )}
-            </button>
-            
-            <div className="mt-4 text-center text-sm text-gray-500">
-              <p>You can use the test card: 4242 4242 4242 4242</p>
-              <p>Exp: Any future date, CVC: Any 3 digits</p>
-            </div>
-          </form>
-        )}
+        </div>
       </div>
     </div>
   );
