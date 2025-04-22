@@ -22,22 +22,18 @@ exports.createBooking = async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!packageId) {
-      return res.status(400).json({ message: "Missing required package ID" });
-    }
-
-    if (!timeSlot) {
-      return res.status(400).json({ message: "Time slot is required" });
+    if (!packageId || !timeSlot || !workoutDaysPerWeek || !goals || !paymentInterval) {
+      return res.status(400).json({ message: "Missing required booking fields" });
     }
 
     // Find package and validate
-    const packageData = await Package.findById(packageId).populate('includedServices');
-    if (!packageData) {
+    const package = await Package.findById(packageId).populate('includedServices');
+    if (!package) {
       return res.status(400).json({ message: "Invalid package" });
     }
   
     // Calculate base price
-    let basePrice = packageData.basePrice;
+    let basePrice = package.basePrice;
     
     // Add custom services price if any
     if (customServices && customServices.length > 0) {
@@ -58,7 +54,7 @@ exports.createBooking = async (req, res) => {
       'Yearly': 12
     };
 
-    let totalPrice = basePrice * (intervalMultiplier[paymentInterval] || 1);
+    let totalPrice = basePrice * intervalMultiplier[paymentInterval];
     if (discount) {
       totalPrice *= (1 - (discount.percentage / 100));
     }
@@ -67,39 +63,30 @@ exports.createBooking = async (req, res) => {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(totalPrice * 100), // Convert to cents
       currency: 'usd',
-      payment_method_types: ['card'],
-      metadata: {
-        userId: req.user.id,
-        packageId: packageId,
-        timeSlot: timeSlot || '',
-        paymentInterval: paymentInterval || 'Monthly'
-      }
+      payment_method_types: ['card']
     });
-
-    // Format goals correctly
-    let formattedGoals = goals;
-    if (typeof goals === 'string') {
-      formattedGoals = goals.split(',').map(goal => goal.trim());
-    } else if (!Array.isArray(goals)) {
-      formattedGoals = [];
-    }
 
     // Create booking
     const newBooking = new Booking({
       user: req.user.id,
       package: packageId,
-      customServices: customServices || [],
+      customServices,
       timeSlot,
-      workoutDaysPerWeek: workoutDaysPerWeek || 3,
-      goals: formattedGoals,
-      paymentInterval: paymentInterval || 'Monthly',
+      workoutDaysPerWeek,
+      goals,
+      paymentInterval,
       totalPrice,
       stripePaymentId: paymentIntent.id,
-      paymentStatus: 'pending',
-      endDate: new Date(Date.now() + ((intervalMultiplier[paymentInterval] || 1) * 30 * 24 * 60 * 60 * 1000))
+      endDate: new Date(Date.now() + (intervalMultiplier[paymentInterval] * 30 * 24 * 60 * 60 * 1000))
     });
 
     await newBooking.save();
+
+    // Update user's current and history membership
+    await User.findByIdAndUpdate(req.user.id, {
+      currentMembership: newBooking._id,
+      $push: { membershipHistory: newBooking._id }
+    });
 
     res.status(201).json({ 
       booking: newBooking, 
@@ -113,47 +100,13 @@ exports.createBooking = async (req, res) => {
 
 exports.getUserBookings = async (req, res) => {
   try {
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: "User is not authenticated" });
-    }
-    
     const bookings = await Booking.find({ user: req.user.id })
       .populate('package')
       .populate('customServices')
       .sort({ createdAt: -1 });
     
-    res.json({ bookings });
+    res.json(bookings);
   } catch (error) {
-    console.error("Error retrieving bookings:", error);
     res.status(500).json({ message: "Error retrieving bookings", error: error.message });
-  }
-};
-
-exports.checkAvailability = async (req, res) => {
-  try {
-    const { timeSlot } = req.query;
-    
-    if (!timeSlot) {
-      return res.status(400).json({ message: "Time slot is required" });
-    }
-    
-    // Simple availability check - could be expanded based on business logic
-    const existingBookings = await Booking.countDocuments({ 
-      timeSlot, 
-      paymentStatus: { $ne: 'cancelled' },
-      endDate: { $gt: new Date() }
-    });
-    
-    // Assuming there's a maximum capacity per time slot
-    const maxCapacity = 20; // This could be dynamically determined
-    const isAvailable = existingBookings < maxCapacity;
-    
-    res.json({ 
-      isAvailable, 
-      remainingSlots: Math.max(0, maxCapacity - existingBookings)
-    });
-  } catch (error) {
-    console.error("Error checking availability:", error);
-    res.status(500).json({ message: "Error checking availability", error: error.message });
   }
 };

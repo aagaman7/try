@@ -18,11 +18,17 @@ const PaymentModal = ({ booking, totalPrice, onClose }) => {
       try {
         setDebugInfo('Creating payment intent...');
         
-        // Log the payment data for debugging
+        // Make sure we send all necessary information
         const paymentData = {
-          ...booking,
+          packageId: booking.packageId,
+          customServices: booking.customServices || [],
+          timeSlot: booking.timeSlot,
+          workoutDaysPerWeek: booking.workoutDaysPerWeek,
+          goals: booking.goals,
+          paymentInterval: booking.paymentInterval,
           amount: totalPrice
         };
+        
         console.log('Payment data being sent:', paymentData);
         
         const response = await apiService.processPayment(paymentData);
@@ -47,50 +53,59 @@ const PaymentModal = ({ booking, totalPrice, onClose }) => {
     }
   }, [booking, totalPrice]);
 
- 
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     
     if (!stripe || !elements) {
+      setError("Stripe hasn't loaded yet. Please try again.");
+      return;
+    }
+    
+    if (!clientSecret) {
+      setError("Payment configuration incomplete. Please wait or try again.");
       return;
     }
     
     setProcessing(true);
     setPaymentInProgress(true);
 
-    const result = await stripe.confirmCardPayment(clientSecret, {
-      payment_method: {
-        card: elements.getElement(CardElement),
-        billing_details: {
-          name: 'Member Name', // You can get this from user context
-        },
-      }
-    });
+    try {
+      const result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement),
+          billing_details: {
+            name: 'Member Name', // Ideally get this from user context
+          },
+        }
+      });
 
-    if (result.error) {
-      setError(`Payment failed: ${result.error.message}`);
-      setProcessing(false);
-      setPaymentInProgress(false);
-    } else {
-      if (result.paymentIntent.status === 'succeeded') {
-        // Send confirmation to your backend
-        try {
-          await apiService.confirmPayment({
-            paymentIntentId: result.paymentIntent.id,
-            bookingId: booking.packageId, // You might need to adjust this based on your booking structure
-            amount: totalPrice
-          });
-          
-          setSucceeded(true);
-          setError(null);
-          setProcessing(false);
-        } catch (err) {
-          console.error('Error confirming payment:', err);
-          setError('Payment processed but failed to complete booking. Please contact support.');
-          setProcessing(false);
+      if (result.error) {
+        setError(`Payment failed: ${result.error.message}`);
+        console.error('Payment error:', result.error);
+      } else {
+        if (result.paymentIntent.status === 'succeeded') {
+          // Send confirmation to your backend
+          try {
+            await apiService.confirmPayment({
+              paymentIntentId: result.paymentIntent.id,
+              bookingId: booking.packageId,
+              amount: totalPrice
+            });
+            
+            setSucceeded(true);
+            setError(null);
+          } catch (err) {
+            console.error('Error confirming payment:', err);
+            setError('Payment processed but failed to complete booking. Please contact support.');
+          }
         }
       }
+    } catch (err) {
+      console.error('Payment submission error:', err);
+      setError(`Error processing payment: ${err.message}`);
+    } finally {
+      setProcessing(false);
+      setPaymentInProgress(false);
     }
   };
 
@@ -165,10 +180,16 @@ const PaymentModal = ({ booking, totalPrice, onClose }) => {
               </div>
             )}
             
+            {debugInfo && (
+              <div className="mb-4 text-xs text-gray-500">
+                <p>{debugInfo}</p>
+              </div>
+            )}
+            
             <button
-              disabled={processing || paymentInProgress || !stripe}
+              disabled={processing || paymentInProgress || !stripe || !clientSecret}
               className={`w-full py-3 px-4 rounded-md text-white font-medium ${
-                processing || paymentInProgress || !stripe 
+                processing || paymentInProgress || !stripe || !clientSecret
                   ? 'bg-gray-400 cursor-not-allowed' 
                   : 'bg-blue-600 hover:bg-blue-700'
               }`}

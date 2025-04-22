@@ -12,6 +12,8 @@ exports.processPayment = async (req, res) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
+    console.log('Payment request received:', req.body);
+
     // Handle both data formats: direct fields or nested in booking object
     let packageId, customServices, timeSlot, workoutDaysPerWeek, goals, paymentInterval, amount;
     
@@ -24,9 +26,9 @@ exports.processPayment = async (req, res) => {
       goals = req.body.goals;
       paymentInterval = req.body.paymentInterval;
       amount = req.body.amount;
-    } else {
+    } else if (req.body.booking) {
       // Nested in booking object
-      const booking = req.body;
+      const booking = req.body.booking;
       packageId = booking.packageId;
       customServices = booking.customServices || [];
       timeSlot = booking.timeSlot;
@@ -34,6 +36,9 @@ exports.processPayment = async (req, res) => {
       goals = booking.goals;
       paymentInterval = booking.paymentInterval;
       amount = booking.amount || req.body.amount;
+    } else {
+      console.error('Invalid payment request format');
+      return res.status(400).json({ message: 'Invalid payment request format' });
     }
 
     // Validate required fields
@@ -77,24 +82,36 @@ exports.processPayment = async (req, res) => {
 
     // Use calculated amount or provided amount
     const finalAmount = amount || totalPrice;
+    console.log(`Creating payment intent for $${finalAmount} (${Math.round(finalAmount * 100)} cents)`);
 
     // Create payment intent with Stripe
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(finalAmount * 100), // Convert to cents
-      currency: 'usd',
-      metadata: {
-        userId: req.user.id,
-        packageId: packageId,
-        timeSlot: timeSlot || '',
-        paymentInterval: paymentInterval || 'Monthly'
-      }
-    });
+    try {
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(finalAmount * 100), // Convert to cents
+        currency: 'usd',
+        payment_method_types: ['card'],
+        metadata: {
+          userId: req.user.id,
+          packageId: packageId,
+          timeSlot: timeSlot || '',
+          paymentInterval: paymentInterval || 'Monthly'
+        }
+      });
 
-    // Return the client secret to the client
-    res.json({
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id
-    });
+      console.log('Payment intent created:', paymentIntent.id);
+
+      // Return the client secret to the client
+      res.json({
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id
+      });
+    } catch (stripeError) {
+      console.error('Stripe error:', stripeError);
+      res.status(400).json({ 
+        message: 'Error creating payment with Stripe', 
+        error: stripeError.message 
+      });
+    }
   } catch (error) {
     console.error('Error processing payment:', error);
     res.status(500).json({ message: 'Error processing payment', error: error.message });
@@ -108,6 +125,7 @@ exports.confirmPayment = async (req, res) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
+    console.log('Payment confirmation request:', req.body);
     const { paymentIntentId, bookingId, amount } = req.body;
 
     if (!paymentIntentId) {
@@ -118,7 +136,10 @@ exports.confirmPayment = async (req, res) => {
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     
     if (paymentIntent.status !== 'succeeded') {
-      return res.status(400).json({ message: 'Payment has not been completed successfully' });
+      return res.status(400).json({ 
+        message: 'Payment has not been completed successfully',
+        status: paymentIntent.status
+      });
     }
 
     // Find or create booking
@@ -172,6 +193,7 @@ exports.confirmPayment = async (req, res) => {
       });
 
       await booking.save();
+      console.log('New booking created:', booking._id);
 
       // Update user's current membership and history
       await User.findByIdAndUpdate(req.user.id, {
@@ -182,6 +204,7 @@ exports.confirmPayment = async (req, res) => {
       // Update existing booking if found
       booking.paymentStatus = 'completed';
       await booking.save();
+      console.log('Existing booking updated:', booking._id);
     }
 
     res.json({ 

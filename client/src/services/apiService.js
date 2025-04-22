@@ -196,6 +196,39 @@ const apiService = {
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch discounts');
     }
+  },
+
+  // Dashboard specific endpoints
+  getUserDashboard: async () => {
+    try {
+      return await api.get('dashboard');
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch dashboard information');
+    }
+  },
+
+  cancelMembership: async () => {
+    try {
+      return await api.post('dashboard/cancel');
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to cancel membership');
+    }
+  },
+
+  freezeMembership: async (freezeData) => {
+    try {
+      return await api.post('dashboard/freeze', freezeData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to freeze membership');
+    }
+  },
+
+  extendMembership: async (extensionData) => {
+    try {
+      return await api.post('dashboard/extend', extensionData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to extend membership');
+    }
   }
 };
 

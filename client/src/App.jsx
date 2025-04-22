@@ -10,6 +10,7 @@ import Register from './pages/Register';
 import TrainerBookingPage from './pages/TrainerBookingPage';
 import MembershipPage from './pages/MembershipPage';
 import BookingPage from './pages/BookingPage';
+import UserDashboard from './pages/UserDashboard'; // Import the new dashboard component
 import { AuthProvider } from './context/AuthContext';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
@@ -36,7 +37,8 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/schedule" element={<TrainerBookingPage/>}/>
               
-              {/* Removed the ProtectedRoute section completely */}
+              {/* User Dashboard - New route */}
+              <Route path="/dashboard" element={<UserDashboard />} />
             </Routes>
           </Elements>
         </main>
