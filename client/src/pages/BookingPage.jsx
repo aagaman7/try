@@ -80,7 +80,7 @@ const BookingForm = () => {
 
       setSuccess("Booking and payment successful!");
     } catch (err) {
-      console.error(err);
+      console.log(err);
       setError(err.message || "Failed to complete booking.");
     } finally {
       setIsProcessing(false);

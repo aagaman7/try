@@ -22,6 +22,13 @@ const app = express();
 
 // Regular middleware
 app.use(express.json());
+
+// app.use(cors({
+//   origin: 'http://localhost:5173', // your frontend domain
+//   credentials: true,
+// }));
+
+
 app.use(cors());
 
 // Connect to MongoDB Atlas
