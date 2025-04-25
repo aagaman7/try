@@ -154,10 +154,6 @@ const apiService = {
   
   bookMembership: async (bookingData) => {
     try {
-      console.log("Token before booking:", localStorage.getItem('token'));
-      console.log("Final headers:", api.defaults.headers.common);
-      // response = await api.post('bookings', bookingData);
-      // console.log("the response we got from booking is", response);
       return await api.post('bookings', bookingData);
     } catch (error) {
       console.log(error);
@@ -165,7 +161,14 @@ const apiService = {
     }
   },
   
-
+  upgradeMembership: async (bookingData) => {
+    try {
+      return await api.put('bookings/upgrade', bookingData);
+    } catch (error) {
+      console.log(error);
+      throw error.response?.data || new Error('Failed to upgrade membership');
+    }
+  },
   
   checkAvailability: async (timeSlot) => {
     try {
