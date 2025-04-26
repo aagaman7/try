@@ -10,6 +10,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const authRoutes = require("./routes/authRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const trainerRoutes = require("./routes/trainerRoutes");
 
 // New routes for membership system
 const packageRoutes = require("./routes/packageRoutes");
@@ -53,7 +54,7 @@ app.use("/api/services", serviceRoutes);
 app.use("/api/discounts", discountRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-
+app.use("/api/trainers", trainerRoutes);
 // app.use("/api/goals", goalRoutes);
 
 const PORT = process.env.PORT || 5000;
