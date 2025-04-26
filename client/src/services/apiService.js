@@ -223,7 +223,91 @@ const apiService = {
     } catch (error) {
       throw error.response?.data || new Error('Failed to extend membership');
     }
+  },
+  // Add these methods to your existing apiService.js file
+
+// Trainer-related endpoints
+getTrainers: async () => {
+  try {
+    return await api.get('trainers');
+  } catch (error) {
+    throw error.response?.data || new Error('Failed to fetch trainers');
   }
+},
+
+getTrainerById: async (trainerId) => {
+  try {
+    return await api.get(`trainers/${trainerId}`);
+  } catch (error) {
+    throw error.response?.data || new Error('Failed to fetch trainer details');
+  }
+},
+
+bookTrainerSession: async (bookingData) => {
+  try {
+    return await api.post('trainers/book', bookingData);
+  } catch (error) {
+    throw error.response?.data || new Error('Failed to book trainer session');
+  }
+},
+
+getUserTrainerBookings: async () => {
+  try {
+    return await api.get('trainers/bookings/user');
+  } catch (error) {
+    throw error.response?.data || new Error('Failed to fetch your bookings');
+  }
+},
+
+cancelTrainerBooking: async (bookingId) => {
+  try {
+    return await api.put(`trainers/bookings/${bookingId}/cancel`);
+  } catch (error) {
+    throw error.response?.data || new Error('Failed to cancel booking');
+  }
+},
+
+// Admin endpoints for trainers
+adminGetAllTrainers: async () => {
+  try {
+    return await api.get('trainers/admin/all');
+  } catch (error) {
+    throw error.response?.data || new Error('Failed to fetch all trainers');
+  }
+},
+
+adminAddTrainer: async (trainerData) => {
+  try {
+    return await api.post('trainers/admin', trainerData);
+  } catch (error) {
+    throw error.response?.data || new Error('Failed to add trainer');
+  }
+},
+
+adminUpdateTrainer: async (trainerId, updateData) => {
+  try {
+    return await api.put(`trainers/admin/${trainerId}`, updateData);
+  } catch (error) {
+    throw error.response?.data || new Error('Failed to update trainer');
+  }
+},
+
+adminDeleteTrainer: async (trainerId) => {
+  try {
+    return await api.delete(`trainers/admin/${trainerId}`);
+  } catch (error) {
+    throw error.response?.data || new Error('Failed to delete trainer');
+  }
+},
+
+adminAddTrainerAvailability: async (trainerId, availabilityData) => {
+  try {
+    return await api.post(`trainers/admin/${trainerId}/availability`, availabilityData);
+  } catch (error) {
+    throw error.response?.data || new Error('Failed to update trainer availability');
+  }
+}
+  
 };
 
 export default apiService;
