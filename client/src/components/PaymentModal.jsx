@@ -1,47 +1,54 @@
+// src/components/PaymentModal.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import apiService from '../services/apiService';
 
-const PaymentModal = ({ booking, totalPrice, onClose }) => {
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
-  const [clientSecret, setClientSecret] = useState('');
+const PaymentModal = ({ 
+  isOpen, 
+  onClose, 
+  onSuccess, 
+  clientSecret,
+  amount,
+  items = [],
+  email = '',
+  processingPayment = false,
+  setProcessingPayment,
+  fetchClientSecret,
+}) => {
   const stripe = useStripe();
   const elements = useElements();
-  const navigate = useNavigate();
-
+  
+  const [paymentError, setPaymentError] = useState(null);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [cardComplete, setCardComplete] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('Credit Card');
+  const [rememberMe, setRememberMe] = useState(false);
+    
   useEffect(() => {
-    // Initialize payment process when modal opens
-    const initiatePayment = async () => {
-      try {
-        setProcessing(true);
-        // Send booking data to create payment intent
-        const response = await apiService.bookMembership(booking);
-        setClientSecret(response.clientSecret);
-        setProcessing(false);
-      } catch (err) {
-        console.error('Payment initialization error:', err);
-        setError(err.message || 'Failed to initialize payment. Please try again.');
-        setProcessing(false);
-      }
-    };
-
-    if (booking) {
-      initiatePayment();
+    // If no client secret is provided, fetch it using the provided function
+    if (isOpen && !clientSecret && fetchClientSecret) {
+      fetchClientSecret();
     }
-  }, [booking]);
+  }, [isOpen, clientSecret, fetchClientSecret]);
+  
+  const handleCardChange = (event) => {
+    setCardComplete(event.complete);
+    setPaymentError(event.error ? event.error.message : null);
+  };
+  
+  const handlePaymentMethodChange = (method) => {
+    setPaymentMethod(method);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!stripe || !elements) {
-      // Stripe.js hasn't loaded yet
+    if (!stripe || !elements || !clientSecret) {
       return;
     }
 
-    setProcessing(true);
+    setProcessingPayment(true);
+    setPaymentError(null);
 
     try {
       const cardElement = elements.getElement(CardElement);
@@ -51,132 +58,220 @@ const PaymentModal = ({ booking, totalPrice, onClose }) => {
         payment_method: {
           card: cardElement,
           billing_details: {
+            email: email || JSON.parse(localStorage.getItem('user'))?.email || '',
             name: JSON.parse(localStorage.getItem('user'))?.name || 'Unknown User',
           },
         },
       });
 
       if (error) {
-        setError(`Payment failed: ${error.message}`);
-        setProcessing(false);
+        setPaymentError(`Payment failed: ${error.message}`);
+        setProcessingPayment(false);
       } else if (paymentIntent.status === 'succeeded') {
-        setSuccess(true);
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000);
+        setPaymentSuccess(true);
+        // Use the callback to confirm payment with our backend if needed
+        if (onSuccess) {
+          await onSuccess(paymentIntent);
+        }
       }
     } catch (err) {
       console.error('Payment processing error:', err);
-      setError('An unexpected error occurred. Please try again.');
-      setProcessing(false);
+      setPaymentError('An unexpected error occurred. Please try again.');
+      setProcessingPayment(false);
     }
   };
 
+  if (!isOpen) return null;
+
+  const totalAmount = typeof amount === 'number' ? amount.toFixed(2) : amount;
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        {/* Background overlay */}
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose}></div>
-
-        {/* Modal panel */}
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div className="sm:flex sm:items-start">
-              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Complete Your Payment</h3>
-                
-                {success ? (
-                  <div className="py-8 text-center">
-                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                      <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <h2 className="mt-3 text-lg font-medium text-gray-900">Payment Successful!</h2>
-                    <p className="mt-2 text-sm text-gray-500">
-                      Thank you for your payment. Redirecting you to your dashboard...
-                    </p>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center">
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-md w-full flex">
+        {/* Left sidebar with items */}
+        <div className="bg-blue-500 text-white p-6 w-2/5">
+          <div className="mb-4">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+            </svg>
+          </div>
+          
+          {items.length > 0 ? (
+            <div className="space-y-4 mb-8">
+              {items.map((item, index) => (
+                <div key={index} className="border-b border-blue-400 pb-4 last:border-b-0">
+                  <div className="text-lg font-medium">{item.name}</div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-blue-200">by {item.by}</span>
+                    <span className="font-bold">${item.price}</span>
                   </div>
-                ) : (
-                  <form onSubmit={handleSubmit}>
-                    <div className="mb-6">
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <div className="flex justify-between mb-2">
-                          <span className="text-gray-700">Membership Plan:</span>
-                          <span className="font-medium">{booking?.packageName}</span>
-                        </div>
-                        <div className="flex justify-between mb-2">
-                          <span className="text-gray-700">Payment Interval:</span>
-                          <span className="font-medium">{booking?.paymentInterval}</span>
-                        </div>
-                        <div className="flex justify-between font-bold">
-                          <span>Total Amount:</span>
-                          <span>${totalPrice.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mb-6">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Card Details
-                      </label>
-                      <div className="border border-gray-300 rounded-md p-4">
-                        <CardElement
-                          options={{
-                            style: {
-                              base: {
-                                fontSize: '16px',
-                                color: '#424770',
-                                '::placeholder': {
-                                  color: '#aab7c4',
-                                },
-                              },
-                              invalid: {
-                                color: '#9e2146',
-                              },
-                            },
-                          }}
-                        />
-                      </div>
-                      {error && (
-                        <div className="mt-2 text-sm text-red-600">{error}</div>
-                      )}
-                    </div>
-
-                    <div className="mt-6 flex justify-end space-x-3">
-                      <button
-                        type="button"
-                        onClick={onClose}
-                        disabled={processing}
-                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={processing || !stripe}
-                        className={`inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                          processing ? 'opacity-70 cursor-not-allowed' : ''
-                        }`}
-                      >
-                        {processing ? (
-                          <div className="flex items-center">
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Processing...
-                          </div>
-                        ) : (
-                          `Pay $${totalPrice.toFixed(2)}`
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xl font-medium mb-8">Complete Payment</div>
+          )}
+          
+          <div className="mt-6">
+            <div className="flex justify-between text-sm border-b border-blue-400 pb-2">
+              <span>Available</span>
+              <span>$0.00</span>
+            </div>
+            <div className="flex justify-between text-sm pt-2">
+              <span>Fee</span>
+              <span>$0.34</span>
             </div>
           </div>
+          
+          <div className="mt-auto pt-10 text-xs">
+            Powered by <span className="font-bold">stripe</span>
+          </div>
+        </div>
+        
+        {/* Right payment form */}
+        <div className="p-6 w-3/5">
+          {paymentSuccess ? (
+            <div className="text-center py-10">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="mt-3 text-lg font-medium text-gray-900">Payment Successful!</h2>
+              <p className="mt-2 text-sm text-gray-500">
+                Thank you for your payment.
+              </p>
+              <button
+                onClick={onClose}
+                className="mt-4 w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              {/* Payment method selection */}
+              <div className="mb-5 flex">
+                <button
+                  type="button"
+                  className={`flex-1 text-center py-2 rounded-l-full ${
+                    paymentMethod === 'Balance' 
+                      ? 'bg-gray-200 text-gray-800' 
+                      : 'bg-white text-gray-400 border'
+                  }`}
+                  onClick={() => handlePaymentMethodChange('Balance')}
+                >
+                  Balance
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 text-center py-2 rounded-r-full ${
+                    paymentMethod === 'Credit Card' 
+                      ? 'bg-gray-200 text-gray-800' 
+                      : 'bg-white text-gray-400 border'
+                  }`}
+                  onClick={() => handlePaymentMethodChange('Credit Card')}
+                >
+                  Credit Card
+                </button>
+              </div>
+              
+              {/* Email input */}
+              <div className="mb-4">
+                <input
+                  type="email"
+                  placeholder="email@example.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  value={email}
+                  readOnly={!!email}
+                />
+              </div>
+              
+              {/* Card details */}
+              <div className="mb-4">
+                <input
+                  type="text"
+                  placeholder="4916 9492 1224 9810"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md mb-2"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="MM/YYYY"
+                    className="w-1/2 px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                  <input
+                    type="text"
+                    placeholder="CVC"
+                    className="w-1/2 px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+                
+                <div className="hidden">
+                  <CardElement
+                    options={{
+                      style: {
+                        base: {
+                          fontSize: '16px',
+                          color: '#424770',
+                          '::placeholder': {
+                            color: '#aab7c4',
+                          },
+                        },
+                        invalid: {
+                          color: '#9e2146',
+                        },
+                      },
+                    }}
+                    onChange={handleCardChange}
+                  />
+                </div>
+              </div>
+              
+              {/* Remember me checkbox */}
+              <div className="mb-6">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={() => setRememberMe(!rememberMe)}
+                    className="mr-2"
+                  />
+                  <span className="text-blue-500">Remember Me</span>
+                </label>
+              </div>
+              
+              {/* Error message */}
+              {paymentError && (
+                <div className="mb-4 text-sm text-red-600 bg-red-50 p-2 rounded">
+                  {paymentError}
+                </div>
+              )}
+              
+              {/* Payment button */}
+              <button
+                type="submit"
+                disabled={processingPayment || !stripe || !clientSecret || !cardComplete}
+                className={`w-full bg-blue-500 text-white py-3 rounded-md ${
+                  processingPayment || !stripe || !clientSecret
+                    ? 'opacity-70 cursor-not-allowed'
+                    : 'hover:bg-blue-600'
+                }`}
+              >
+                {processingPayment ? (
+                  <div className="flex items-center justify-center">
+                    <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </div>
+                ) : (
+                  `Pay $${totalAmount}`
+                )}
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </div>

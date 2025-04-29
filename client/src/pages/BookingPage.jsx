@@ -1,15 +1,16 @@
+// src/pages/BookingPage.jsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
 import apiService from '../services/apiService';
+import { usePayment } from '../context/PaymentContext';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 const BookingForm = () => {
-  const stripe = useStripe();
-  const elements = useElements();
   const navigate = useNavigate();
+  const { openPaymentModal } = usePayment();
 
   const [packages, setPackages] = useState([]);
   const [services, setServices] = useState([]);
@@ -22,7 +23,6 @@ const BookingForm = () => {
     paymentInterval: 'Monthly'
   });
   
-  const [clientSecret, setClientSecret] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -139,56 +139,85 @@ const BookingForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsProcessing(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      let bookingResponse;
-      
-      if (isEditMode) {
-        // Handle membership upgrade
-        bookingResponse = await apiService.put('bookings/upgrade', formData);
-        if (bookingResponse.requiresPayment) {
-          setClientSecret(bookingResponse.clientSecret);
-        } else {
-          // No payment needed (downgrade or lateral change)
-          setSuccess("Membership updated successfully!");
-          setTimeout(() => {
-            navigate('/dashboard');
-          }, 2000);
-          return;
-        }
-      } else {
-        // Create new membership
-        bookingResponse = await apiService.post('bookings', formData);
-        setClientSecret(bookingResponse.clientSecret);
+    
+    if (!priceSummary) {
+      await previewPriceChange();
+    }
+    
+    // If no payment required (downgrade or lateral change), just update the membership
+    if (priceSummary && !priceSummary.requiresPayment && isEditMode) {
+      try {
+        setIsProcessing(true);
+        await apiService.put('bookings/upgrade', formData);
+        setSuccess("Membership updated successfully!");
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
+      } catch (err) {
+        setError(err.message || "Failed to update membership.");
+      } finally {
+        setIsProcessing(false);
       }
-
-      const cardElement = elements.getElement(CardElement);
-
-      const paymentResult = await stripe.confirmCardPayment(bookingResponse.clientSecret, {
-        payment_method: {
-          card: cardElement
-        }
+      return;
+    }
+    
+    // For new memberships or upgrades requiring payment
+    const selectedPackage = packages.find(p => p._id === formData.packageId);
+    const selectedServices = services.filter(s => formData.customServices.includes(s._id));
+    
+    // Create payment items for display
+    const paymentItems = [
+      {
+        name: selectedPackage?.name || "Membership Package",
+        by: "Fitness Club",
+        price: selectedPackage?.basePrice || 0
+      }
+    ];
+    
+    // Add selected services as items
+    selectedServices.forEach(service => {
+      paymentItems.push({
+        name: service.name,
+        by: "Add-on Service",
+        price: service.price
       });
-
-      if (paymentResult.error) {
-        throw new Error(paymentResult.error.message);
+    });
+    
+    // Function to fetch client secret
+    const fetchClientSecret = async () => {
+      try {
+        setIsProcessing(true);
+        let response;
+        
+        if (isEditMode) {
+          response = await apiService.put('bookings/upgrade', formData);
+        } else {
+          response = await apiService.post('bookings', formData);
+        }
+        
+        return response.clientSecret;
+      } catch (err) {
+        setError(err.message || "Failed to initialize payment");
+        setIsProcessing(false);
       }
-
+    };
+    
+    // Handle payment success
+    const handlePaymentSuccess = async (paymentIntent) => {
       setSuccess(isEditMode ? "Membership updated successfully!" : "Booking and payment successful!");
-      
-      // Redirect to dashboard after success
       setTimeout(() => {
         navigate('/dashboard');
       }, 2000);
-    } catch (err) {
-      console.log(err);
-      setError(err.message || (isEditMode ? "Failed to update membership." : "Failed to complete booking."));
-    } finally {
-      setIsProcessing(false);
-    }
+    };
+    
+    // Open payment modal
+    openPaymentModal({
+      amount: priceSummary.amountCharged,
+      items: paymentItems,
+      email: JSON.parse(localStorage.getItem('user'))?.email || '',
+      onSuccess: handlePaymentSuccess,
+      fetchClientSecret: fetchClientSecret
+    });
   };
 
   // Get the current package price
@@ -321,22 +350,13 @@ const BookingForm = () => {
           </div>
         )}
 
-        {priceSummary && (priceSummary.requiresPayment || !isEditMode) && (
-          <div>
-            <label className="block">Card Details</label>
-            <div className="border p-2 rounded-md">
-              <CardElement />
-            </div>
-          </div>
-        )}
-
         {error && <p className="text-red-500">{error}</p>}
         {success && <p className="text-green-500">{success}</p>}
 
         <button
           type="submit"
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
-          disabled={!stripe || !elements || isProcessing || (priceSummary && !priceSummary.requiresPayment && !isEditMode)}
+          disabled={isProcessing}
         >
           {isProcessing ? "Processing..." : isEditMode ? "Confirm Changes" : "Confirm Booking & Pay"}
         </button>
@@ -346,11 +366,7 @@ const BookingForm = () => {
 };
 
 const BookingPage = () => {
-  return (
-    <Elements stripe={stripePromise}>
-      <BookingForm />
-    </Elements>
-  );
+  return <BookingForm />;
 };
 
 export default BookingPage;

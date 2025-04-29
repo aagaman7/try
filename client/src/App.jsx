@@ -14,6 +14,7 @@ import UserDashboard from './pages/UserDashboard'; // Import the new dashboard c
 import { AuthProvider } from './context/AuthContext';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
+import { PaymentProvider } from './context/PaymentContext';
 
 // Load Stripe
 // Load Stripe with a fallback
@@ -22,6 +23,7 @@ const stripePromise = loadStripe("pk_test_51R3gpYKyPD1pSXJk7t5Miohxxr1gbEhR7JGKK
 function App() {
   return (
     <AuthProvider>
+      <PaymentProvider>
       <Router>
         <Navbar />
         <main className="min-h-screen pt-16">
@@ -44,6 +46,7 @@ function App() {
         </main>
         <Footer />
       </Router>
+      </PaymentProvider>
     </AuthProvider>
   );
 }
