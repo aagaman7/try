@@ -7,6 +7,6 @@ const router = express.Router();
 // User routes for booking
 router.post("/", authMiddleware, bookingController.createBooking);
 router.get("/", authMiddleware, bookingController.getUserBookings);
-router.put("/upgrade", authMiddleware, bookingController.upgradeMembership);
+
 
 module.exports = router;
