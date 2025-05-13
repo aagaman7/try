@@ -1,7 +1,8 @@
 // controllers/trainerController.js
 const Trainer = require("../models/TrainerModel");
 const User = require("../models/UserModel");
-const TrainerBooking = require("../models/TrainerBookingModel"); // We'll create this model next
+const TrainerBooking = require("../models/TrainerBookingModel");
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // Get all active trainers
 exports.getTrainers = async (req, res) => {
@@ -31,6 +32,11 @@ exports.getTrainerById = async (req, res) => {
 // Book a trainer session
 exports.bookTrainerSession = async (req, res) => {
   try {
+    // Check if user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "User is not authenticated" });
+    }
+
     const { trainerId, date, time, notes } = req.body;
 
     // Validate required fields
@@ -50,32 +56,84 @@ exports.bookTrainerSession = async (req, res) => {
       return res.status(400).json({ message: "Selected time slot is not available" });
     }
 
-    // Create a new booking
+    // Extract the price from the trainer
+    // Converting from string to number as the model stores price as string
+    const price = parseFloat(trainer.price);
+    if (isNaN(price)) {
+      return res.status(500).json({ message: "Invalid trainer price" });
+    }
+
+    // Create a Stripe payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(price * 100), // Convert to cents
+      currency: 'usd',
+      payment_method_types: ['card']
+    });
+
+    // Create a new booking with payment information
     const newBooking = new TrainerBooking({
       user: req.user.id,
       trainer: trainerId,
       date,
       time,
       notes: notes || "",
-      status: "confirmed" // Default status
+      status: "pending", // Set to pending until payment is confirmed
+      totalPrice: price,
+      stripePaymentId: paymentIntent.id,
+      paymentStatus: 'pending'
     });
 
     await newBooking.save();
 
-    // Remove the booked time slot from trainer's availability
-    await Trainer.updateOne(
-      { _id: trainerId, "availability.date": date },
-      { $pull: { "availability.$.times": time } }
-    );
-
+    // Return booking info and client secret
     res.status(201).json({ 
-      message: "Trainer session booked successfully",
-      booking: newBooking 
+      message: "Trainer session booking initiated",
+      booking: newBooking,
+      clientSecret: paymentIntent.client_secret
     });
 
   } catch (error) {
     console.error("Error booking trainer session:", error);
     res.status(500).json({ message: "Error booking trainer session", error: error.message });
+  }
+};
+
+// Confirm trainer booking payment
+exports.confirmTrainerBookingPayment = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    
+    // Find the booking
+    const booking = await TrainerBooking.findById(bookingId);
+    
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+    
+    // Check if this booking belongs to the user
+    if (booking.user.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized to confirm this booking" });
+    }
+
+    // Update booking status
+    booking.status = "confirmed";
+    booking.paymentStatus = "completed";
+    await booking.save();
+
+    // Remove the booked time slot from trainer's availability
+    await Trainer.updateOne(
+      { _id: booking.trainer, "availability.date": booking.date },
+      { $pull: { "availability.$.times": booking.time } }
+    );
+    
+    res.status(200).json({ 
+      message: "Booking payment confirmed successfully",
+      booking
+    });
+    
+  } catch (error) {
+    console.error("Error confirming booking payment:", error);
+    res.status(500).json({ message: "Error confirming booking payment", error: error.message });
   }
 };
 
@@ -119,6 +177,15 @@ exports.cancelTrainerBooking = async (req, res) => {
       return res.status(400).json({ 
         message: "Cannot cancel booking less than 24 hours before session time" 
       });
+    }
+
+    // Process refund via Stripe if payment was completed
+    if (booking.paymentStatus === 'completed') {
+      const refund = await stripe.refunds.create({
+        payment_intent: booking.stripePaymentId
+      });
+      
+      booking.paymentStatus = 'refunded';
     }
     
     // Add the time slot back to trainer's availability

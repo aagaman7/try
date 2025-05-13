@@ -8,6 +8,7 @@ import {
   CheckCircleOutlined, CloseCircleOutlined,
   DollarOutlined, AppstoreOutlined
 } from '@ant-design/icons';
+import apiService from '../../services/apiService';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -26,61 +27,12 @@ const ServicesPanel = () => {
     fetchServices();
   }, []);
 
-  // Fetch services function (simulated API call)
+  // Fetch services function using API service
   const fetchServices = async () => {
     setTableLoading(true);
-    // In a real app, this would be an API call
     try {
-      // Simulated API response
-      const sampleServices = [
-        { 
-          _id: '1', 
-          name: 'Personal Training', 
-          price: 50, 
-          description: 'One-on-one training session with a certified trainer', 
-          category: 'Fitness',
-          active: true,
-          createdAt: new Date('2025-03-10')
-        },
-        { 
-          _id: '2', 
-          name: 'Group Yoga Class', 
-          price: 15, 
-          description: 'Group yoga session with an experienced instructor', 
-          category: 'Wellness',
-          active: true,
-          createdAt: new Date('2025-03-15')
-        },
-        { 
-          _id: '3', 
-          name: 'Nutrition Consultation', 
-          price: 75, 
-          description: 'Professional nutrition advice and meal planning', 
-          category: 'Wellness',
-          active: true,
-          createdAt: new Date('2025-02-01')
-        },
-        { 
-          _id: '4', 
-          name: 'Strength Training Class', 
-          price: 20, 
-          description: 'Group strength training class focusing on building muscle', 
-          category: 'Fitness',
-          active: false,
-          createdAt: new Date('2025-01-01')
-        },
-        { 
-          _id: '5', 
-          name: 'Massage Therapy', 
-          price: 60, 
-          description: 'Full body massage therapy for recovery and relaxation', 
-          category: 'Wellness',
-          active: true,
-          createdAt: new Date('2025-04-01')
-        },
-      ];
-      
-      setServices(sampleServices);
+      const response = await apiService.getServices();
+      setServices(response);
       setTableLoading(false);
     } catch (error) {
       console.error('Error fetching services:', error);
@@ -116,65 +68,53 @@ const ServicesPanel = () => {
     setModalVisible(true);
   };
 
-  // Handle delete service
+  // Handle delete service using API service
   const handleDeleteService = async (serviceId) => {
-    // In a real app, this would be an API call
     try {
-      // Simulate API call
-      setServices(services.filter(item => item._id !== serviceId));
+      await apiService.deleteService(serviceId);
       message.success('Service deleted successfully.');
+      fetchServices(); // Refresh the list after deletion
     } catch (error) {
       console.error('Error deleting service:', error);
       message.error('Failed to delete service.');
     }
   };
 
-  // Handle toggle service active status
+  // Handle toggle service active status using API service
   const handleToggleStatus = async (service) => {
-    // In a real app, this would be an API call
     try {
-      const updatedService = { ...service, active: !service.active };
-      setServices(services.map(item => 
-        item._id === service._id ? updatedService : item
-      ));
-      message.success(`Service ${updatedService.active ? 'activated' : 'deactivated'} successfully.`);
+      const updatedData = { 
+        ...service, 
+        active: !service.active 
+      };
+      await apiService.updateService(service._id, updatedData);
+      message.success(`Service ${!service.active ? 'activated' : 'deactivated'} successfully.`);
+      fetchServices(); // Refresh the list after update
     } catch (error) {
       console.error('Error updating service status:', error);
       message.error('Failed to update service status.');
     }
   };
 
-  // Handle save service (create or update)
+  // Handle save service (create or update) using API service
   const handleSaveService = async () => {
     try {
       const values = await form.validateFields();
       setLoading(true);
       
-      // In a real app, this would be an API call
-      setTimeout(() => {
-        if (isEditing) {
-          // Update existing service
-          const updatedService = { 
-            ...currentService, 
-            ...values 
-          };
-          setServices(services.map(item => 
-            item._id === currentService._id ? updatedService : item
-          ));
-          message.success('Service updated successfully.');
-        } else {
-          // Create new service
-          const newService = {
-            _id: `temp-${Date.now()}`, // In a real app, the ID would come from the backend
-            ...values,
-            createdAt: new Date()
-          };
-          setServices([...services, newService]);
-          message.success('Service created successfully.');
-        }
-        setModalVisible(false);
-        setLoading(false);
-      }, 500);
+      if (isEditing) {
+        // Update existing service
+        await apiService.updateService(currentService._id, values);
+        message.success('Service updated successfully.');
+      } else {
+        // Create new service
+        await apiService.createService(values);
+        message.success('Service created successfully.');
+      }
+      
+      setModalVisible(false);
+      setLoading(false);
+      fetchServices(); // Refresh the list after creating/updating
     } catch (error) {
       console.error('Error saving service:', error);
       message.error('Failed to save service. Please check the form.');

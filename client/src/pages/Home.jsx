@@ -16,7 +16,7 @@ const Home = () => {
               Ready to transform your fitness journey?
             </h2>
             <p className="mt-4 text-xl text-gray-600">
-              Join FitLife Gym today and start achieving your fitness goals.
+              Join RBL Fitness today and start achieving your fitness goals.
             </p>
             <div className="mt-8 flex justify-center">
               <Link

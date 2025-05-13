@@ -8,7 +8,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-8">
           {/* About section */}
           <div className="col-span-1">
-            <h3 className="text-xl font-bold mb-4">FitLife Gym</h3>
+            <h3 className="text-xl font-bold mb-4">RBL Fitness</h3>
             <p className="text-gray-300 mb-4">
               Transforming lives through fitness excellence since 2010. Join us on your journey to a healthier, stronger you.
             </p>
@@ -99,7 +99,7 @@ const Footer = () => {
                 <svg className="h-6 w-6 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                <span className="text-gray-300">info@fitlifegym.com</span>
+                <span className="text-gray-300">info@rblfitness.com</span>
               </li>
               <li className="flex items-start">
                 <svg className="h-6 w-6 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -116,7 +116,7 @@ const Footer = () => {
         </div>
         
         <div className="pt-8 mt-8 border-t border-gray-700 text-center text-gray-400">
-          <p>&copy; {new Date().getFullYear()} FitLife Gym. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} RBL Fitness. All rights reserved.</p>
         </div>
       </div>
     </footer>

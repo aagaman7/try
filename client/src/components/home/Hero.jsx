@@ -18,7 +18,7 @@ const Hero = () => {
           Transform Your Life
         </h1>
         <p className="mt-6 text-xl text-gray-300 max-w-3xl">
-          Welcome to FitLife Gym, where fitness meets lifestyle. Our state-of-the-art facility and expert trainers are here to help you achieve your fitness goals and live your best life.
+          Welcome to RBL Fitness, where fitness meets lifestyle. Our state-of-the-art facility and expert trainers are here to help you achieve your fitness goals and live your best life.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row gap-4">
           <Link

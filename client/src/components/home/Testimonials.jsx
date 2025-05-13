@@ -3,21 +3,21 @@ import React from 'react';
 const testimonials = [
   {
     id: 1,
-    content: "FitLife Gym completely transformed my fitness journey. The trainers are knowledgeable and supportive, and the facility has everything I need.",
+    content: "RBL Fitness completely transformed my fitness journey. The trainers are knowledgeable and supportive, and the facility has everything I need.",
     author: "Sarah Johnson",
     role: "Member since 2021",
     image: "https://randomuser.me/api/portraits/women/32.jpg"
   },
   {
     id: 2,
-    content: "I've been to many gyms over the years, but none compare to FitLife. The community atmosphere and quality equipment make every workout enjoyable.",
+    content: "I've been to many gyms over the years, but none compare to RBL. The community atmosphere and quality equipment make every workout enjoyable.",
     author: "Michael Chen",
     role: "Member since 2020",
     image: "https://randomuser.me/api/portraits/men/46.jpg"
   },
   {
     id: 3,
-    content: "The personal training program at FitLife helped me reach goals I never thought possible. I'm stronger and healthier than I've ever been!",
+    content: "The personal training program at RBL fitness helped me reach goals I never thought possible. I'm stronger and healthier than I've ever been!",
     author: "Emma Rodriguez",
     role: "Member since 2022",
     image: "https://randomuser.me/api/portraits/women/65.jpg"

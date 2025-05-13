@@ -63,7 +63,8 @@ const BookingForm = () => {
     setSuccess(null);
 
     try {
-      const bookingResponse = await apiService.bookMembership(formData);
+      // Changed from bookMembership to createBooking to match the API service method
+      const bookingResponse = await apiService.createBooking(formData);
       setClientSecret(bookingResponse.clientSecret);
 
       const cardElement = elements.getElement(CardElement);

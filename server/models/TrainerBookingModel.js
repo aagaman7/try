@@ -26,8 +26,21 @@ const TrainerBookingSchema = new mongoose.Schema({
   },
   status: { 
     type: String, 
-    enum: ['confirmed', 'completed', 'cancelled'], 
-    default: 'confirmed' 
+    enum: ['pending', 'confirmed', 'completed', 'cancelled'], 
+    default: 'pending' 
+  },
+  totalPrice: {
+    type: Number,
+    required: true
+  },
+  stripePaymentId: {
+    type: String,
+    required: true
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'completed', 'failed', 'refunded'],
+    default: 'pending'
   }
 }, { timestamps: true });
 

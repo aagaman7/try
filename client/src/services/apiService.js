@@ -119,7 +119,24 @@ const apiService = {
     }
   },
 
-  // Specific API endpoints
+  // Auth Routes
+  register: async (userData) => {
+    try {
+      return await api.post('auth/register', userData);
+    } catch (error) {
+      throw error.response?.data || new Error('Registration failed');
+    }
+  },
+
+  login: async (credentials) => {
+    try {
+      return await api.post('auth/login', credentials);
+    } catch (error) {
+      throw error.response?.data || new Error('Login failed');
+    }
+  },
+
+  // Package Routes
   getPackages: async () => {
     try {
       return await api.get('packages');
@@ -136,6 +153,31 @@ const apiService = {
     }
   },
   
+  createPackage: async (packageData) => {
+    try {
+      return await api.post('packages', packageData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to create package');
+    }
+  },
+  
+  updatePackage: async (packageId, packageData) => {
+    try {
+      return await api.put(`packages/${packageId}`, packageData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to update package');
+    }
+  },
+  
+  deletePackage: async (packageId) => {
+    try {
+      return await api.delete(`packages/${packageId}`);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to delete package');
+    }
+  },
+  
+  // Service Routes
   getServices: async () => {
     try {
       return await api.get('services');
@@ -144,20 +186,45 @@ const apiService = {
     }
   },
   
-  getTrainers: async () => {
+  createService: async (serviceData) => {
     try {
-      return await api.get('trainers');
+      return await api.post('services', serviceData);
     } catch (error) {
-      throw error.response?.data || new Error('Failed to fetch trainers');
+      throw error.response?.data || new Error('Failed to create service');
     }
   },
   
-  bookMembership: async (bookingData) => {
+  updateService: async (serviceId, serviceData) => {
+    try {
+      return await api.put(`services/${serviceId}`, serviceData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to update service');
+    }
+  },
+  
+  deleteService: async (serviceId) => {
+    try {
+      return await api.delete(`services/${serviceId}`);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to delete service');
+    }
+  },
+  
+  // Booking Routes
+  createBooking: async (bookingData) => {
     try {
       return await api.post('bookings', bookingData);
     } catch (error) {
       console.log(error);
-      throw error.response?.data || new Error('Failed to book membership');
+      throw error.response?.data || new Error('Failed to create booking');
+    }
+  },
+  
+  getUserBookings: async () => {
+    try {
+      return await api.get('bookings');
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch user bookings');
     }
   },
   
@@ -178,6 +245,7 @@ const apiService = {
     }
   },
   
+  // Discount Routes
   getAllDiscounts: async (params = {}) => {
     try {
       let queryString = '';
@@ -191,8 +259,32 @@ const apiService = {
       throw error.response?.data || new Error('Failed to fetch discounts');
     }
   },
+  
+  createDiscount: async (discountData) => {
+    try {
+      return await api.post('discounts', discountData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to create discount');
+    }
+  },
+  
+  updateDiscount: async (discountId, discountData) => {
+    try {
+      return await api.put(`discounts/${discountId}`, discountData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to update discount');
+    }
+  },
+  
+  deleteDiscount: async (discountId) => {
+    try {
+      return await api.delete(`discounts/${discountId}`);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to delete discount');
+    }
+  },
 
-  // Dashboard specific endpoints
+  // Dashboard Routes
   getUserDashboard: async () => {
     try {
       return await api.get('dashboard');
@@ -224,90 +316,129 @@ const apiService = {
       throw error.response?.data || new Error('Failed to extend membership');
     }
   },
-  // Add these methods to your existing apiService.js file
 
-// Trainer-related endpoints
-getTrainers: async () => {
-  try {
-    return await api.get('trainers');
-  } catch (error) {
-    throw error.response?.data || new Error('Failed to fetch trainers');
-  }
-},
+  // Trainer Routes
+  getTrainers: async () => {
+    try {
+      return await api.get('trainers');
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch trainers');
+    }
+  },
 
-getTrainerById: async (trainerId) => {
-  try {
-    return await api.get(`trainers/${trainerId}`);
-  } catch (error) {
-    throw error.response?.data || new Error('Failed to fetch trainer details');
-  }
-},
+  getTrainerById: async (trainerId) => {
+    try {
+      return await api.get(`trainers/${trainerId}`);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch trainer details');
+    }
+  },
 
-bookTrainerSession: async (bookingData) => {
-  try {
-    return await api.post('trainers/book', bookingData);
-  } catch (error) {
-    throw error.response?.data || new Error('Failed to book trainer session');
-  }
-},
+  bookTrainerSession: async (bookingData) => {
+    try {
+      return await api.post('trainers/book', bookingData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to book trainer session');
+    }
+  },
 
-getUserTrainerBookings: async () => {
-  try {
-    return await api.get('trainers/bookings/user');
-  } catch (error) {
-    throw error.response?.data || new Error('Failed to fetch your bookings');
-  }
-},
+  getUserTrainerBookings: async () => {
+    try {
+      return await api.get('trainers/bookings/user');
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch your bookings');
+    }
+  },
 
-cancelTrainerBooking: async (bookingId) => {
-  try {
-    return await api.put(`trainers/bookings/${bookingId}/cancel`);
-  } catch (error) {
-    throw error.response?.data || new Error('Failed to cancel booking');
-  }
-},
+  cancelTrainerBooking: async (bookingId) => {
+    try {
+      return await api.put(`trainers/bookings/${bookingId}/cancel`);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to cancel booking');
+    }
+  },
 
-// Admin endpoints for trainers
-adminGetAllTrainers: async () => {
-  try {
-    return await api.get('trainers/admin/all');
-  } catch (error) {
-    throw error.response?.data || new Error('Failed to fetch all trainers');
-  }
-},
+  // Admin Trainer Routes
+  adminGetAllTrainers: async () => {
+    try {
+      return await api.get('trainers/admin/all');
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch all trainers');
+    }
+  },
 
-adminAddTrainer: async (trainerData) => {
-  try {
-    return await api.post('trainers/admin', trainerData);
-  } catch (error) {
-    throw error.response?.data || new Error('Failed to add trainer');
-  }
-},
+  adminAddTrainer: async (trainerData) => {
+    try {
+      return await api.post('trainers/admin', trainerData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to add trainer');
+    }
+  },
 
-adminUpdateTrainer: async (trainerId, updateData) => {
-  try {
-    return await api.put(`trainers/admin/${trainerId}`, updateData);
-  } catch (error) {
-    throw error.response?.data || new Error('Failed to update trainer');
-  }
-},
+  adminUpdateTrainer: async (trainerId, updateData) => {
+    try {
+      return await api.put(`trainers/admin/${trainerId}`, updateData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to update trainer');
+    }
+  },
 
-adminDeleteTrainer: async (trainerId) => {
-  try {
-    return await api.delete(`trainers/admin/${trainerId}`);
-  } catch (error) {
-    throw error.response?.data || new Error('Failed to delete trainer');
-  }
-},
+  adminDeleteTrainer: async (trainerId) => {
+    try {
+      return await api.delete(`trainers/admin/${trainerId}`);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to delete trainer');
+    }
+  },
 
-adminAddTrainerAvailability: async (trainerId, availabilityData) => {
-  try {
-    return await api.post(`trainers/admin/${trainerId}/availability`, availabilityData);
-  } catch (error) {
-    throw error.response?.data || new Error('Failed to update trainer availability');
+  adminAddTrainerAvailability: async (trainerId, availabilityData) => {
+    try {
+      return await api.post(`trainers/admin/${trainerId}/availability`, availabilityData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to update trainer availability');
+    }
+  },
+
+  // Admin User Management Routes
+  adminGetAllUsers: async () => {
+    try {
+      return await api.get('admin/users');
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch all users');
+    }
+  },
+
+  adminGetUserProfile: async (userId) => {
+    try {
+      return await api.get(`admin/users/${userId}`);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch user profile');
+    }
+  },
+
+  adminUpdateUserRole: async (userId, roleData) => {
+    try {
+      return await api.put(`admin/users/${userId}/role`, roleData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to update user role');
+    }
+  },
+
+  adminToggleUserStatus: async (userId, statusData) => {
+    try {
+      return await api.put(`admin/users/${userId}/status`, statusData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to toggle user status');
+    }
+  },
+
+  adminGetUserMembershipHistory: async (userId) => {
+    try {
+      return await api.get(`admin/users/${userId}/membership-history`);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch user membership history');
+    }
   }
-}
-  
 };
 
 export default apiService;

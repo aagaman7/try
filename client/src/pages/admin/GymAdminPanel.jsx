@@ -40,11 +40,12 @@ function GymAdminPanel() {
 
   const navItems = [
     { path: "/", name: "Dashboard", icon: <Home size={20} /> },
-    { path: "/users", name: "Users", icon: <Users size={20} /> },
-    { path: "/bookings", name: "Bookings", icon: <Calendar size={20} /> },
-    { path: "/packages", name: "Packages", icon: <Package size={20} /> },
-    { path: "/services", name: "Services", icon: <Dumbbell size={20} /> },
-    { path: "/discounts", name: "Discounts", icon: <Tag size={20} /> },
+    { path: "users", name: "Users", icon: <Users size={20} /> },
+    { path: "bookings", name: "Bookings", icon: <Calendar size={20} /> },
+    { path: "packages", name: "Packages", icon: <Package size={20} /> },
+    { path: "services", name: "Services", icon: <Dumbbell size={20} /> },
+    { path: "discounts", name: "Discounts", icon: <Tag size={20} /> },
+    { path: "trainers", name: "Trainers", icon: <Tag size={20} /> },
   ];
 
   return (

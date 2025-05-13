@@ -1,102 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import apiService from '../../services/apiService'; // Adjust the path as needed
 
 const PackagesPanel = () => {
-  // Dummy data for packages
-  const dummyPackages = [
-    {
-      _id: "1",
-      name: "Basic Fitness",
-      description: "Entry level fitness package with basic amenities",
-      basePrice: 49.99,
-      isCustom: false,
-      includedServices: ["1", "2"],
-      active: true,
-      createdAt: "2025-02-15T10:30:00.000Z"
-    },
-    {
-      _id: "2",
-      name: "Premium Wellness",
-      description: "Complete wellness package with all premium services",
-      basePrice: 99.99,
-      isCustom: false,
-      includedServices: ["1", "2", "3", "4"],
-      active: true,
-      createdAt: "2025-03-01T14:45:00.000Z"
-    },
-    {
-      _id: "3",
-      name: "Custom Training",
-      description: "Personalized training program based on individual needs",
-      basePrice: 149.99,
-      isCustom: true,
-      includedServices: ["2", "5"],
-      active: true,
-      createdAt: "2025-03-10T09:20:00.000Z"
-    },
-    {
-      _id: "4",
-      name: "Family Plan",
-      description: "Group package for families with up to 4 members",
-      basePrice: 199.99,
-      isCustom: false,
-      includedServices: ["1", "2", "6"],
-      active: false,
-      createdAt: "2025-01-20T11:15:00.000Z"
-    }
-  ];
-
-  // Dummy data for services
-  const dummyServices = [
-    {
-      _id: "1",
-      name: "Gym Access",
-      price: 29.99,
-      description: "24/7 access to gym equipment and facilities",
-      category: "Fitness",
-      active: true
-    },
-    {
-      _id: "2",
-      name: "Group Classes",
-      price: 19.99,
-      description: "Access to all group fitness classes",
-      category: "Fitness",
-      active: true
-    },
-    {
-      _id: "3",
-      name: "Personal Training",
-      price: 49.99,
-      description: "One-on-one training sessions with certified trainers",
-      category: "Fitness",
-      active: true
-    },
-    {
-      _id: "4",
-      name: "Nutrition Consultation",
-      price: 39.99,
-      description: "Professional nutrition advice and meal planning",
-      category: "Wellness",
-      active: true
-    },
-    {
-      _id: "5",
-      name: "Massage Therapy",
-      price: 59.99,
-      description: "Relaxation and recovery massage sessions",
-      category: "Wellness",
-      active: true
-    },
-    {
-      _id: "6",
-      name: "Swimming Pool",
-      price: 24.99,
-      description: "Access to swimming facilities",
-      category: "Fitness",
-      active: true
-    }
-  ];
-
   const [packages, setPackages] = useState([]);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -113,16 +18,27 @@ const PackagesPanel = () => {
     active: true
   });
 
-  // Initialize with dummy data
+  // Fetch packages and services from API
   useEffect(() => {
-    // Simulate API loading delay
-    const timer = setTimeout(() => {
-      setPackages(dummyPackages);
-      setServices(dummyServices);
-      setLoading(false);
-    }, 800);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [packagesData, servicesData] = await Promise.all([
+          apiService.getPackages(),
+          apiService.getServices()
+        ]);
+        setPackages(packagesData);
+        setServices(servicesData);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('Failed to load data. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    return () => clearTimeout(timer);
+    fetchData();
   }, []);
 
   // Reset form data
@@ -138,25 +54,46 @@ const PackagesPanel = () => {
   };
 
   // Handle view package details
-  const handleViewPackage = (pkg) => {
-    setSelectedPackage(pkg);
-    setIsEditMode(false);
-    setIsCreateMode(false);
+  const handleViewPackage = async (pkg) => {
+    try {
+      // Get detailed package data with populated services
+      const detailedPackage = await apiService.getPackageById(pkg._id);
+      setSelectedPackage(detailedPackage);
+      setIsEditMode(false);
+      setIsCreateMode(false);
+    } catch (err) {
+      console.error('Error fetching package details:', err);
+      setError('Failed to load package details');
+    }
   };
 
   // Handle edit package
-  const handleEditPackage = (pkg) => {
-    setSelectedPackage(pkg);
-    setFormData({
-      name: pkg.name,
-      description: pkg.description || '',
-      basePrice: pkg.basePrice,
-      isCustom: pkg.isCustom,
-      includedServices: pkg.includedServices,
-      active: pkg.active
-    });
-    setIsEditMode(true);
-    setIsCreateMode(false);
+  const handleEditPackage = async (pkg) => {
+    try {
+      // Get the most up-to-date package data before editing
+      const packageToEdit = await apiService.getPackageById(pkg._id);
+      setSelectedPackage(packageToEdit);
+      
+      // Extract service IDs from the includedServices array of objects
+      const serviceIds = packageToEdit.includedServices.map(service => 
+        typeof service === 'object' ? service._id : service
+      );
+      
+      setFormData({
+        name: packageToEdit.name,
+        description: packageToEdit.description || '',
+        basePrice: packageToEdit.basePrice,
+        isCustom: packageToEdit.isCustom,
+        includedServices: serviceIds,
+        active: packageToEdit.active !== false // Default to true if not specified
+      });
+      
+      setIsEditMode(true);
+      setIsCreateMode(false);
+    } catch (err) {
+      console.error('Error preparing package for edit:', err);
+      setError('Failed to load package for editing');
+    }
   };
 
   // Handle create new package
@@ -170,10 +107,19 @@ const PackagesPanel = () => {
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value
-    });
+    
+    if (name === 'basePrice') {
+      // Ensure basePrice is stored as a number
+      setFormData({
+        ...formData,
+        [name]: parseFloat(value)
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: type === 'checkbox' ? checked : value
+      });
+    }
   };
 
   // Handle service selection
@@ -194,56 +140,55 @@ const PackagesPanel = () => {
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     try {
       if (isCreateMode) {
-        // Generate a new unique ID and create timestamp
-        const newPackage = {
-          ...formData,
-          _id: `${packages.length + 1}`,
-          createdAt: new Date().toISOString()
-        };
-
+        const newPackage = await apiService.createPackage(formData);
         setPackages([...packages, newPackage]);
-        setIsCreateMode(false);
         setSelectedPackage(newPackage);
+        setIsCreateMode(false);
       } else if (isEditMode && selectedPackage) {
-        const updatedPackage = {
-          ...selectedPackage,
-          ...formData
-        };
-
+        const updatedPackage = await apiService.updatePackage(selectedPackage._id, formData);
         setPackages(packages.map(pkg => pkg._id === selectedPackage._id ? updatedPackage : pkg));
         setSelectedPackage(updatedPackage);
         setIsEditMode(false);
       }
       resetForm();
     } catch (err) {
-      setError('Failed to save package');
+      const errorMessage = err.message || 'Failed to save package';
+      setError(errorMessage);
       console.error('Error saving package:', err);
     }
   };
 
   // Handle delete package
-  const handleDeletePackage = (packageId) => {
+  const handleDeletePackage = async (packageId) => {
     if (window.confirm('Are you sure you want to delete this package?')) {
-      setPackages(packages.filter(pkg => pkg._id !== packageId));
-      if (selectedPackage && selectedPackage._id === packageId) {
-        setSelectedPackage(null);
+      try {
+        await apiService.deletePackage(packageId);
+        setPackages(packages.filter(pkg => pkg._id !== packageId));
+        if (selectedPackage && selectedPackage._id === packageId) {
+          setSelectedPackage(null);
+        }
+      } catch (err) {
+        setError('Failed to delete package');
+        console.error('Error deleting package:', err);
       }
     }
   };
 
-  // Render service name from ID
-  const getServiceNameById = (serviceId) => {
-    const service = services.find(service => service._id === serviceId);
-    return service ? service.name : 'Unknown Service';
+  // Check if service is included
+  const isServiceIncluded = (serviceId) => {
+    return formData.includedServices.some(id => 
+      id === serviceId || (typeof id === 'object' && id._id === serviceId)
+    );
   };
 
   // Get service details by ID
   const getServiceById = (serviceId) => {
+    if (typeof serviceId === 'object') return serviceId;
     return services.find(service => service._id === serviceId);
   };
 
@@ -295,7 +240,7 @@ const PackagesPanel = () => {
                     </div>
                   </div>
                   <p className="text-sm text-gray-500">
-                    ${pkg.basePrice} | {pkg.active ? 'Active' : 'Inactive'}
+                    ${pkg.basePrice.toFixed(2)} | {pkg.active !== false ? 'Active' : 'Inactive'}
                   </p>
                 </li>
               ))}
@@ -341,6 +286,8 @@ const PackagesPanel = () => {
                     value={formData.basePrice}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded"
+                    step="0.01"
+                    min="0"
                     required
                   />
                 </div>
@@ -375,12 +322,12 @@ const PackagesPanel = () => {
                           <input
                             type="checkbox"
                             value={service._id}
-                            checked={formData.includedServices.includes(service._id)}
+                            checked={isServiceIncluded(service._id)}
                             onChange={handleServiceSelection}
                             className="mr-2"
                           />
                           <label>
-                            {service.name} - ${service.price}
+                            {service.name} - ${service.price.toFixed(2)}
                           </label>
                         </div>
                       ))
@@ -394,7 +341,7 @@ const PackagesPanel = () => {
                       setIsCreateMode(false);
                       setIsEditMode(false);
                       if (selectedPackage) {
-                        setSelectedPackage(packages.find(p => p._id === selectedPackage._id));
+                        handleViewPackage({_id: selectedPackage._id});
                       }
                       resetForm();
                     }}
@@ -433,7 +380,7 @@ const PackagesPanel = () => {
               </div>
               <div className="bg-gray-50 p-4 rounded mb-4">
                 <p className="mb-2">
-                  <span className="font-medium">Base Price:</span> ${selectedPackage.basePrice}
+                  <span className="font-medium">Base Price:</span> ${selectedPackage.basePrice.toFixed(2)}
                 </p>
                 <p className="mb-2">
                   <span className="font-medium">Description:</span> {selectedPackage.description || 'No description provided'}
@@ -442,7 +389,7 @@ const PackagesPanel = () => {
                   <span className="font-medium">Type:</span> {selectedPackage.isCustom ? 'Custom Package' : 'Standard Package'}
                 </p>
                 <p className="mb-2">
-                  <span className="font-medium">Status:</span> {selectedPackage.active ? 'Active' : 'Inactive'}
+                  <span className="font-medium">Status:</span> {selectedPackage.active !== false ? 'Active' : 'Inactive'}
                 </p>
                 <p className="mb-2">
                   <span className="font-medium">Created:</span> {new Date(selectedPackage.createdAt).toLocaleDateString()}
@@ -452,17 +399,18 @@ const PackagesPanel = () => {
                 <h3 className="font-semibold mb-2">Included Services</h3>
                 {selectedPackage.includedServices && selectedPackage.includedServices.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {selectedPackage.includedServices.map(serviceId => {
-                      const service = getServiceById(serviceId);
-                      return service ? (
-                        <div key={serviceId} className="bg-gray-50 p-3 rounded border">
-                          <p className="font-medium">{service.name}</p>
-                          <p className="text-sm text-gray-600">${service.price}</p>
-                          <p className="text-sm text-gray-500">{service.description}</p>
+                    {selectedPackage.includedServices.map(service => {
+                      // Handle both populated service objects and IDs
+                      const serviceData = typeof service === 'object' ? service : getServiceById(service);
+                      return serviceData ? (
+                        <div key={serviceData._id} className="bg-gray-50 p-3 rounded border">
+                          <p className="font-medium">{serviceData.name}</p>
+                          <p className="text-sm text-gray-600">${serviceData.price.toFixed(2)}</p>
+                          <p className="text-sm text-gray-500">{serviceData.description}</p>
                         </div>
                       ) : (
-                        <div key={serviceId} className="bg-gray-50 p-3 rounded border">
-                          Unknown Service (ID: {serviceId})
+                        <div key={typeof service === 'object' ? service._id : service} className="bg-gray-50 p-3 rounded border">
+                          Unknown Service (ID: {typeof service === 'object' ? service._id : service})
                         </div>
                       );
                     })}

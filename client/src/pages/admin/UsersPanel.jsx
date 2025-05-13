@@ -7,6 +7,7 @@ import {
   PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined,
   DollarOutlined, CalendarOutlined, CreditCardOutlined
 } from '@ant-design/icons';
+import apiService from '../../services/apiService'; // Import your API service
 
 const { Option } = Select;
 const { TabPane } = Tabs;
@@ -23,110 +24,154 @@ const UsersPanel = () => {
   const [users, setUsers] = useState([]);
   const [payments, setPayments] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [tableLoading, setTableLoading] = useState(true);
 
   // Fetch data on component mount
   useEffect(() => {
-    fetchUsers();
-    fetchPayments();
-    fetchBookings();
+    fetchAllData();
   }, []);
 
-  // Sample fetch functions (would use real API calls in a real app)
-  const fetchUsers = () => {
-    // Simulated API call
-    const sampleUsers = [
-      { _id: '1', name: 'John Doe', email: 'john@example.com', role: 'Member', currentMembership: 'Premium Package' },
-      { _id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'Member', currentMembership: 'Basic Package' },
-      { _id: '3', name: 'Admin User', email: 'admin@example.com', role: 'Admin', currentMembership: null },
-      { _id: '4', name: 'Mike Johnson', email: 'mike@example.com', role: 'Member', currentMembership: 'Pro Package' }
-    ];
-    setUsers(sampleUsers);
+  // Fetch all required data
+  const fetchAllData = async () => {
+    setTableLoading(true);
+    try {
+      await Promise.all([
+        fetchUsers(),
+        fetchPayments(),
+        fetchBookings()
+      ]);
+    } catch (error) {
+      message.error('Failed to load data');
+      console.error('Error loading data:', error);
+    } finally {
+      setTableLoading(false);
+    }
   };
 
-  const fetchPayments = () => {
-    // Simulated API call
-    const samplePayments = [
-      { _id: 'p1', user: '1', booking: 'b1', amount: 99.99, status: 'Success', transactionId: 'tx_123456', createdAt: new Date('2025-03-15') },
-      { _id: 'p2', user: '1', booking: 'b2', amount: 49.99, status: 'Success', transactionId: 'tx_234567', createdAt: new Date('2025-04-15') },
-      { _id: 'p3', user: '2', booking: 'b3', amount: 29.99, status: 'Failed', transactionId: 'tx_345678', createdAt: new Date('2025-04-10') },
-      { _id: 'p4', user: '2', booking: 'b4', amount: 29.99, status: 'Success', transactionId: 'tx_456789', createdAt: new Date('2025-04-12') },
-      { _id: 'p5', user: '4', booking: 'b5', amount: 149.99, status: 'Success', transactionId: 'tx_567890', createdAt: new Date('2025-04-01') }
-    ];
-    setPayments(samplePayments);
+  // Fetch users from API
+  const fetchUsers = async () => {
+    try {
+      const response = await apiService.adminGetAllUsers();
+      // Ensure response is an array
+      const usersArray = Array.isArray(response) ? response : (response.users || []);
+      setUsers(usersArray);
+      return usersArray; // Return for use in other functions
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      message.error('Failed to fetch users');
+      return []; // Return empty array on error
+    }
   };
 
-  const fetchBookings = () => {
-    // Simulated API call
-    const sampleBookings = [
-      { 
-        _id: 'b1', 
-        user: '1', 
-        package: 'Premium', 
-        timeSlot: 'Morning', 
-        workoutDaysPerWeek: 5, 
-        paymentInterval: 'Monthly', 
-        totalPrice: 99.99,
-        startDate: new Date('2025-03-15'),
-        endDate: new Date('2025-04-15'),
-        status: 'Active'
-      },
-      { 
-        _id: 'b2', 
-        user: '1', 
-        package: 'Premium', 
-        timeSlot: 'Morning', 
-        workoutDaysPerWeek: 5, 
-        paymentInterval: 'Monthly', 
-        totalPrice: 49.99,
-        startDate: new Date('2025-04-15'),
-        endDate: new Date('2025-05-15'),
-        status: 'Active'
-      },
-      { 
-        _id: 'b3', 
-        user: '2', 
-        package: 'Basic', 
-        timeSlot: 'Evening', 
-        workoutDaysPerWeek: 3, 
-        paymentInterval: 'Monthly', 
-        totalPrice: 29.99,
-        startDate: new Date('2025-04-10'),
-        endDate: new Date('2025-05-10'),
-        status: 'Cancelled'
-      },
-      { 
-        _id: 'b4', 
-        user: '2', 
-        package: 'Basic', 
-        timeSlot: 'Evening', 
-        workoutDaysPerWeek: 3, 
-        paymentInterval: 'Monthly', 
-        totalPrice: 29.99,
-        startDate: new Date('2025-04-12'),
-        endDate: new Date('2025-05-12'),
-        status: 'Active'
-      },
-      { 
-        _id: 'b5', 
-        user: '4', 
-        package: 'Pro', 
-        timeSlot: 'Afternoon', 
-        workoutDaysPerWeek: 7, 
-        paymentInterval: '3 Months', 
-        totalPrice: 149.99,
-        startDate: new Date('2025-04-01'),
-        endDate: new Date('2025-07-01'),
-        status: 'Active'
+  // Fetch payments
+  const fetchPayments = async () => {
+    try {
+      // Get all users first
+      const allUsers = await fetchUsers(); // Reuse the function to ensure consistent data
+      
+      if (!Array.isArray(allUsers)) {
+        throw new Error('Users data is not an array');
       }
-    ];
-    setBookings(sampleBookings);
+      
+      // Array to store all payments
+      let allPayments = [];
+      
+      // For each user, fetch their membership history which contains payment info
+      await Promise.all(allUsers.map(async (user) => {
+        if (!user || !user._id) return; // Skip if user or user ID is invalid
+        
+        try {
+          const membershipHistory = await apiService.adminGetUserMembershipHistory(user._id);
+          const userMembershipHistory = Array.isArray(membershipHistory) ? 
+            membershipHistory : (membershipHistory.history || []);
+          
+          // Extract payments from membership history
+          const userPayments = userMembershipHistory.map(membership => ({
+            _id: membership._id || `temp-${Date.now()}-${Math.random()}`,
+            user: user._id,
+            booking: membership.bookingId,
+            amount: membership.paymentAmount,
+            status: membership.paymentStatus || 'Unknown',
+            transactionId: membership.transactionId || 'N/A',
+            createdAt: membership.paymentDate || new Date().toISOString()
+          }));
+          
+          allPayments = [...allPayments, ...userPayments];
+        } catch (err) {
+          console.error(`Error fetching membership history for user ${user._id}:`, err);
+        }
+      }));
+      
+      setPayments(allPayments);
+      return allPayments;
+    } catch (error) {
+      console.error('Error fetching payments data:', error);
+      message.error('Failed to fetch payment information');
+      return [];
+    }
+  };
+
+  // Fetch bookings data
+  const fetchBookings = async () => {
+    try {
+      // Get all users first
+      const allUsers = await fetchUsers(); // Reuse the function to ensure consistent data
+      
+      if (!Array.isArray(allUsers)) {
+        throw new Error('Users data is not an array');
+      }
+      
+      let allBookings = [];
+      
+      await Promise.all(allUsers.map(async (user) => {
+        if (!user || !user._id) return; // Skip if user or user ID is invalid
+        
+        try {
+          // Get user profile to access their bookings
+          const userProfile = await apiService.adminGetUserProfile(user._id);
+          
+          if (userProfile && userProfile.bookings && Array.isArray(userProfile.bookings) && userProfile.bookings.length > 0) {
+            const userBookings = userProfile.bookings.map(booking => ({
+              _id: booking._id || `temp-${Date.now()}-${Math.random()}`,
+              user: user._id,
+              package: booking.packageName || 'Unknown Package',
+              timeSlot: booking.timeSlot,
+              workoutDaysPerWeek: booking.daysPerWeek,
+              paymentInterval: booking.paymentInterval || 'Monthly',
+              totalPrice: booking.totalPrice || 0,
+              startDate: booking.startDate,
+              endDate: booking.endDate,
+              status: booking.status || 'Unknown'
+            }));
+            
+            allBookings = [...allBookings, ...userBookings];
+          }
+        } catch (err) {
+          console.error(`Error fetching bookings for user ${user._id}:`, err);
+        }
+      }));
+      
+      setBookings(allBookings);
+      return allBookings;
+    } catch (error) {
+      console.error('Error fetching bookings data:', error);
+      message.error('Failed to fetch booking information');
+      return [];
+    }
   };
 
   // Handle edit user
   const handleEdit = (user) => {
     setIsEditing(true);
     setCurrentUser(user);
-    form.setFieldsValue(user);
+    
+    // Format user data for the form
+    const formData = {
+      ...user,
+      role: user.role // Ensure role is properly set
+    };
+    
+    form.setFieldsValue(formData);
     setModalVisible(true);
   };
 
@@ -139,9 +184,23 @@ const UsersPanel = () => {
   };
 
   // Handle delete user
-  const handleDelete = (userId) => {
-    // In a real app, make an API call to delete the user
-    message.success(`User ${userId} deleted successfully!`);
+  const handleDelete = async (userId) => {
+    try {
+      setLoading(true);
+      
+      // Using the admin toggle user status API to deactivate user
+      await apiService.adminToggleUserStatus(userId, { active: false });
+      
+      message.success('User deactivated successfully!');
+      
+      // Refresh the user list
+      fetchUsers();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      message.error('Failed to delete user');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle modal close
@@ -156,33 +215,60 @@ const UsersPanel = () => {
       const values = await form.validateFields();
       setLoading(true);
       
-      // In a real app, make an API call to update or create user
-      setTimeout(() => {
-        if (isEditing) {
-          message.success("User updated successfully!");
-        } else {
-          message.success("User created successfully!");
-        }
-        setLoading(false);
-        setModalVisible(false);
-      }, 500);
+      if (isEditing) {
+        // Update existing user
+        await apiService.adminUpdateUserRole(currentUser._id, { role: values.role });
+        
+        message.success('User updated successfully!');
+      } else {
+        // Register new user
+        await apiService.register({
+          name: values.name,
+          email: values.email,
+          password: values.password,
+          role: values.role
+        });
+        
+        message.success('User created successfully!');
+      }
+      
+      // Refresh the users list
+      fetchUsers();
+      setModalVisible(false);
     } catch (error) {
-      console.error("Error saving user:", error);
-      message.error("Error saving user. Please check the form and try again.");
+      console.error('Error saving user:', error);
+      message.error(`Error: ${error.message || 'Please check the form and try again'}`);
+    } finally {
       setLoading(false);
     }
   };
 
   // View user payments and bookings
-  const handleViewPayments = (userId) => {
-    const userPayments = payments.filter(payment => payment.user === userId);
-    const userBookings = bookings.filter(booking => booking.user === userId);
-    const user = users.find(u => u._id === userId);
-    
-    setSelectedUserPayments(userPayments);
-    setSelectedUserBookings(userBookings);
-    setCurrentUser(user);
-    setPaymentModalVisible(true);
+  const handleViewPayments = async (userId) => {
+    try {
+      // Get user profile
+      const user = users.find(u => u._id === userId);
+      
+      if (!user) {
+        message.error('User not found');
+        return;
+      }
+      
+      // Get user payments
+      const userPayments = payments.filter(payment => payment.user === userId);
+      
+      // Get user bookings
+      const userBookings = bookings.filter(booking => booking.user === userId);
+      
+      // Set data for the modal
+      setSelectedUserPayments(userPayments);
+      setSelectedUserBookings(userBookings);
+      setCurrentUser(user);
+      setPaymentModalVisible(true);
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      message.error('Failed to load user details');
+    }
   };
 
   // Get payment status badge color
@@ -202,6 +288,7 @@ const UsersPanel = () => {
 
   // Format date for display
   const formatDate = (date) => {
+    if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -217,7 +304,7 @@ const UsersPanel = () => {
       key: 'name',
       render: (text, record) => (
         <Space>
-          <Avatar src={`/api/placeholder/40/40`} icon={<UserOutlined />} />
+          <Avatar src={record.profileImage || `/api/placeholder/40/40`} icon={<UserOutlined />} />
           <span>{text}</span>
         </Space>
       ),
@@ -233,14 +320,20 @@ const UsersPanel = () => {
       key: 'role',
       render: (role) => {
         let color = role === 'Admin' ? 'purple' : role === 'Trainer' ? 'blue' : 'green';
-        return <Tag color={color}>{role}</Tag>;
+        return <Tag color={color}>{role || 'Member'}</Tag>;
       },
     },
     {
       title: 'Membership',
-      dataIndex: 'currentMembership',
       key: 'currentMembership',
-      render: (text) => text || 'None',
+      render: (_, record) => {
+        // Find user's active booking
+        const activeBooking = bookings.find(
+          b => b.user === record._id && b.status === 'Active'
+        );
+        
+        return activeBooking ? activeBooking.package : 'None';
+      }
     },
     {
       title: 'Payment Status',
@@ -326,7 +419,7 @@ const UsersPanel = () => {
       title: 'Amount',
       dataIndex: 'amount',
       key: 'amount',
-      render: amount => `$${amount.toFixed(2)}`,
+      render: amount => `$${amount ? amount.toFixed(2) : '0.00'}`,
     },
     {
       title: 'Status',
@@ -363,7 +456,7 @@ const UsersPanel = () => {
       title: 'Price',
       dataIndex: 'totalPrice',
       key: 'totalPrice',
-      render: price => `$${price.toFixed(2)}`,
+      render: price => `$${price ? price.toFixed(2) : '0.00'}`,
     },
     {
       title: 'Interval',
@@ -397,7 +490,8 @@ const UsersPanel = () => {
       <Table 
         dataSource={users}
         columns={columns}
-        rowKey="_id"
+        rowKey={record => record._id || `temp-${Date.now()}-${Math.random()}`}
+        loading={tableLoading}
         pagination={{ 
           defaultPageSize: 10,
           showSizeChanger: true,
@@ -454,17 +548,6 @@ const UsersPanel = () => {
             </Select>
           </Form.Item>
           
-          <Form.Item
-            name="currentMembership"
-            label="Current Membership"
-          >
-            <Select placeholder="Select membership" allowClear>
-              <Option value="Basic Package">Basic Package</Option>
-              <Option value="Premium Package">Premium Package</Option>
-              <Option value="Pro Package">Pro Package</Option>
-            </Select>
-          </Form.Item>
-          
           {!isEditing && (
             <Form.Item
               name="password"
@@ -479,7 +562,7 @@ const UsersPanel = () => {
 
       {/* Payment Details Modal */}
       <Modal
-        title={`${currentUser?.name} - Payment & Booking Details`}
+        title={`${currentUser?.name || 'User'} - Payment & Booking Details`}
         visible={paymentModalVisible}
         onCancel={() => setPaymentModalVisible(false)}
         width={800}
@@ -511,7 +594,7 @@ const UsersPanel = () => {
               <Descriptions.Item label="Total Amount Paid">
                 ${selectedUserPayments
                   .filter(p => p.status === 'Success')
-                  .reduce((sum, p) => sum + p.amount, 0)
+                  .reduce((sum, p) => sum + (p.amount || 0), 0)
                   .toFixed(2)}
               </Descriptions.Item>
               <Descriptions.Item label="Latest Payment" span={2}>
@@ -526,7 +609,7 @@ const UsersPanel = () => {
             <Table 
               dataSource={selectedUserPayments}
               columns={paymentColumns}
-              rowKey="_id"
+              rowKey={record => record._id || `temp-${Date.now()}-${Math.random()}`}
               pagination={false}
             />
           </TabPane>
@@ -557,7 +640,7 @@ const UsersPanel = () => {
             <Table 
               dataSource={selectedUserBookings}
               columns={bookingColumns}
-              rowKey="_id"
+              rowKey={record => record._id || `temp-${Date.now()}-${Math.random()}`}
               pagination={false}
             />
           </TabPane>

@@ -1,28 +1,26 @@
-import React from 'react';
+import React from 'react'; 
 import TeamMember from '../components/about/TeamMember';
 import StorySection from '../components/about/StorySection';
 import { Link } from 'react-router-dom';
-// import { motion } from 'react-motion'; // This is optional - you'd need to install this package
 import { motion } from "framer-motion";
-
 
 const About = () => {
   const aboutSections = [
     {
       id: 'our-story',
       title: 'Our Story',
-      content: `FitLife Gym was founded in 2010 with a simple mission: to create a fitness community that supports and inspires every member to achieve their personal best. What started as a small local gym has grown into a premier fitness destination, but our commitment to personalized service and member success remains unchanged.
+      content: `RBL Fitness was founded in 2010 with a simple mission: to create a fitness community that supports and inspires every member to achieve their personal best. What started as a small local gym has grown into a premier fitness destination, but our commitment to personalized service and member success remains unchanged.
       
       Our journey began when our founder, Michael Torres, a certified personal trainer and fitness enthusiast, recognized that many gyms were missing the human element that makes fitness transformative. He envisioned a place where state-of-the-art equipment meets genuine support and community.
       
-      Today, FitLife Gym continues to evolve and grow, but we still maintain the personalized approach and community spirit that set us apart from the beginning. Each member matters, and each fitness journey is unique and important to us.`,
+      Today, RBL Fitness continues to evolve and grow, but we still maintain the personalized approach and community spirit that set us apart from the beginning. Each member matters, and each fitness journey is unique and important to us.`,
       image: 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-      imageAlt: 'FitLife Gym early days',
+      imageAlt: 'RBL Fitness early days',
     },
     {
       id: 'our-mission',
       title: 'Our Mission',
-      content: `At FitLife Gym, our mission is to empower individuals to transform their lives through fitness in a supportive, non-intimidating environment. We believe fitness is for everyone, regardless of age, experience, or current fitness level.
+      content: `At RBL Fitness, our mission is to empower individuals to transform their lives through fitness in a supportive, non-intimidating environment. We believe fitness is for everyone, regardless of age, experience, or current fitness level.
       
       We strive to:
       • Provide a welcoming environment where all members feel comfortable and supported
@@ -38,7 +36,7 @@ const About = () => {
     {
       id: 'our-values',
       title: 'Our Values',
-      content: `Our core values guide everything we do at FitLife Gym:
+      content: `Our core values guide everything we do at RBL Fitness:
       
       • **Inclusivity**: We welcome everyone, creating a space where diversity is celebrated and all fitness journeys are respected.
       
@@ -50,20 +48,20 @@ const About = () => {
       
       • **Innovation**: We continuously explore new approaches to fitness, incorporating evidence-based practices that deliver results.`,
       image: 'https://images.unsplash.com/photo-1574680178050-55c6a6a96e0a?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-      imageAlt: 'Group fitness class at FitLife Gym',
+      imageAlt: 'Group fitness class at RBL Fitness',
     },
     {
       id: 'our-approach',
       title: 'Our Approach',
-      content: `What sets FitLife Gym apart is our holistic approach to fitness. We understand that true wellness encompasses physical strength, mental resilience, and lifestyle balance.
+      content: `What sets RBL Fitness apart is our holistic approach to fitness. We understand that true wellness encompasses physical strength, mental resilience, and lifestyle balance.
       
       Each member receives a personalized fitness assessment and customized plan based on their goals, current fitness level, and preferences. Our certified trainers provide ongoing guidance and adjustments to ensure continued progress.
       
       We offer a diverse range of workout options—from high-intensity interval training and strength conditioning to yoga and mobility work—allowing members to build a balanced fitness regimen that works for their unique needs.
       
-      Beyond workouts, we provide nutrition guidance, recovery resources, and wellness education to support complete health transformations. At FitLife, we're not just building stronger bodies; we're fostering healthier, happier lives.`,
+      Beyond workouts, we provide nutrition guidance, recovery resources, and wellness education to support complete health transformations. At RBL, we're not just building stronger bodies; we're fostering healthier, happier lives.`,
       image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-      imageAlt: 'Personal training session at FitLife Gym',
+      imageAlt: 'Personal training session at RBL Fitness',
     }
   ];
 
@@ -72,7 +70,7 @@ const About = () => {
       id: 1,
       name: 'Michael Torres',
       title: 'Founder & Head Trainer',
-      bio: 'With over 15 years of experience in the fitness industry, Michael founded FitLife Gym with the vision of creating a fitness community that prioritizes personalized support and results. His expertise in strength training and nutrition has helped thousands of members transform their lives.',
+      bio: 'With over 15 years of experience in the fitness industry, Michael founded RBL Fitness with the vision of creating a fitness community that prioritizes personalized support and results. His expertise in strength training and nutrition has helped thousands of members transform their lives.',
       image: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&q=80',
       certifications: ['NASM Certified Personal Trainer', 'Precision Nutrition Level 2', 'TRX Suspension Training Specialist']
     },
@@ -80,7 +78,7 @@ const About = () => {
       id: 2,
       name: 'Sarah Johnson',
       title: 'Fitness Director',
-      bio: 'Sarah oversees all fitness programming at FitLife Gym, ensuring that our classes and training sessions reflect the latest in exercise science. Her background in kinesiology and passion for functional fitness have been instrumental in developing our signature workout programs.',
+      bio: 'Sarah oversees all fitness programming at RBL Fitness, ensuring that our classes and training sessions reflect the latest in exercise science. Her background in kinesiology and passion for functional fitness have been instrumental in developing our signature workout programs.',
       image: 'https://images.unsplash.com/photo-1548690312-e3b507d8c110?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&q=80',
       certifications: ['MS in Exercise Science', 'ACE Certified Personal Trainer', 'Functional Patterns Certified Trainer']
     },
@@ -129,24 +127,27 @@ const About = () => {
     {
       id: 1,
       name: 'James Wilson',
-      quote: 'FitLife isn\'t just a gym—it\'s a complete fitness solution. The personalized approach and supportive community have made all the difference in my fitness journey.',
+      quote: 'RBL isn\'t just a gym—it\'s a complete fitness solution. The personalized approach and supportive community have made all the difference in my fitness journey.',
       achievement: 'Lost 45 pounds and completed his first marathon',
       image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=300&q=80'
     },
     {
       id: 2,
       name: 'Emma Taylor',
-      quote: 'The trainers at FitLife genuinely care about your progress. They\'ve helped me build strength I never thought possible while making the process enjoyable.',
+      quote: 'The trainers at RBL genuinely care about your progress. They\'ve helped me build strength I never thought possible while making the process enjoyable.',
       achievement: 'Increased strength by 70% and improved posture after years of back pain',
-      image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=300&q=80'
+      image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=300&q=80',
+
     }
   ];
+
+
 
   return (
     <div className="about-page">
       <section className="hero-section bg-gradient-to-r from-blue-700 to-indigo-900 text-white py-20">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">About FitLife Gym</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-6">About RBL Fitness</h1>
           <p className="text-xl max-w-3xl">Where fitness meets community and transformation happens daily. Discover the story, people, and philosophy that make us more than just a gym.</p>
         </div>
       </section>

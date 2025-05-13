@@ -8,6 +8,7 @@ import {
   CheckCircleOutlined, CloseCircleOutlined,
   PercentageOutlined, CalendarOutlined
 } from '@ant-design/icons';
+import apiService from '../../services/apiService';
 
 const { Option } = Select;
 
@@ -25,56 +26,12 @@ const DiscountPanel = () => {
     fetchDiscounts();
   }, []);
 
-  // Fetch discounts function (simulated API call)
+  // Fetch discounts using the API service
   const fetchDiscounts = async () => {
     setTableLoading(true);
-    // In a real app, this would be an API call
     try {
-      // Simulated API response
-      const sampleDiscounts = [
-        { 
-          _id: '1', 
-          name: 'Spring Sale', 
-          percentage: 15, 
-          paymentInterval: 'Monthly', 
-          active: true,
-          createdAt: new Date('2025-03-10')
-        },
-        { 
-          _id: '2', 
-          name: 'Summer Special', 
-          percentage: 20, 
-          paymentInterval: '3 Months', 
-          active: true,
-          createdAt: new Date('2025-03-15')
-        },
-        { 
-          _id: '3', 
-          name: 'Annual Discount', 
-          percentage: 30, 
-          paymentInterval: 'Yearly', 
-          active: true,
-          createdAt: new Date('2025-02-01')
-        },
-        { 
-          _id: '4', 
-          name: 'New Year Offer', 
-          percentage: 25, 
-          paymentInterval: 'Monthly', 
-          active: false,
-          createdAt: new Date('2025-01-01')
-        },
-        { 
-          _id: '5', 
-          name: 'Referral Bonus', 
-          percentage: 10, 
-          paymentInterval: '3 Months', 
-          active: true,
-          createdAt: new Date('2025-04-01')
-        },
-      ];
-      
-      setDiscounts(sampleDiscounts);
+      const response = await apiService.getAllDiscounts();
+      setDiscounts(response);
       setTableLoading(false);
     } catch (error) {
       console.error('Error fetching discounts:', error);
@@ -109,65 +66,53 @@ const DiscountPanel = () => {
     setModalVisible(true);
   };
 
-  // Handle delete discount
+  // Handle delete discount using the API service
   const handleDeleteDiscount = async (discountId) => {
-    // In a real app, this would be an API call
     try {
-      // Simulate API call
-      setDiscounts(discounts.filter(item => item._id !== discountId));
+      await apiService.deleteDiscount(discountId);
       message.success('Discount deleted successfully.');
+      fetchDiscounts(); // Refresh the list after deletion
     } catch (error) {
       console.error('Error deleting discount:', error);
       message.error('Failed to delete discount.');
     }
   };
 
-  // Handle toggle discount active status
+  // Handle toggle discount active status using the API service
   const handleToggleStatus = async (discount) => {
-    // In a real app, this would be an API call
     try {
-      const updatedDiscount = { ...discount, active: !discount.active };
-      setDiscounts(discounts.map(item => 
-        item._id === discount._id ? updatedDiscount : item
-      ));
-      message.success(`Discount ${updatedDiscount.active ? 'activated' : 'deactivated'} successfully.`);
+      const updatedData = { 
+        ...discount, 
+        active: !discount.active 
+      };
+      await apiService.updateDiscount(discount._id, updatedData);
+      message.success(`Discount ${!discount.active ? 'activated' : 'deactivated'} successfully.`);
+      fetchDiscounts(); // Refresh the list after update
     } catch (error) {
       console.error('Error updating discount status:', error);
       message.error('Failed to update discount status.');
     }
   };
 
-  // Handle save discount (create or update)
+  // Handle save discount (create or update) using the API service
   const handleSaveDiscount = async () => {
     try {
       const values = await form.validateFields();
       setLoading(true);
       
-      // In a real app, this would be an API call
-      setTimeout(() => {
-        if (isEditing) {
-          // Update existing discount
-          const updatedDiscount = { 
-            ...currentDiscount, 
-            ...values 
-          };
-          setDiscounts(discounts.map(item => 
-            item._id === currentDiscount._id ? updatedDiscount : item
-          ));
-          message.success('Discount updated successfully.');
-        } else {
-          // Create new discount
-          const newDiscount = {
-            _id: `temp-${Date.now()}`, // In a real app, the ID would come from the backend
-            ...values,
-            createdAt: new Date()
-          };
-          setDiscounts([...discounts, newDiscount]);
-          message.success('Discount created successfully.');
-        }
-        setModalVisible(false);
-        setLoading(false);
-      }, 500);
+      if (isEditing) {
+        // Update existing discount
+        await apiService.updateDiscount(currentDiscount._id, values);
+        message.success('Discount updated successfully.');
+      } else {
+        // Create new discount
+        await apiService.createDiscount(values);
+        message.success('Discount created successfully.');
+      }
+      
+      setModalVisible(false);
+      setLoading(false);
+      fetchDiscounts(); // Refresh the list after creating/updating
     } catch (error) {
       console.error('Error saving discount:', error);
       message.error('Failed to save discount. Please check the form.');

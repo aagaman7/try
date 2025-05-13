@@ -19,6 +19,13 @@ router.post(
   trainerController.bookTrainerSession
 );
 
+// Confirm booking payment
+router.put(
+  "/bookings/:bookingId/confirm-payment",
+  authMiddleware,
+  trainerController.confirmTrainerBookingPayment
+);
+
 // Get user's bookings
 router.get(
   "/bookings/user", 
