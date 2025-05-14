@@ -7,10 +7,10 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import TrainerBookingPage from "./pages/TrainerBookingPage";
+// import TrainerBookingPage from "./pages/TrainerBookingPage";
 import MembershipPage from "./pages/MembershipPage";
 import BookingPage from "./pages/BookingPage";
-import UserDashboard from "./pages/UserDashboard"; // Import the new dashboard component
+import UserDashboard from "./pages/UserDashboard"; 
 import { AuthProvider } from "./context/AuthContext";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
@@ -46,7 +46,7 @@ function App() {
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/schedule" element={<TrainerBookingPage />} />
+              {/* <Route path="/schedule" element={<TrainerBookingPage />} /> */}
 
               <Route path="/admin" element={<GymAdminPanel />}>
                 <Route index element={<Dashboard />} />

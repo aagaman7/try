@@ -9,7 +9,7 @@ const Contact = () => {
       name: 'Main Facility',
       address: '123 Fitness Street, Cityville, State 12345',
       phone: '(555) 123-4567',
-      email: 'main@fitgym.com',
+      email: 'main@rbl.com',
       hours: 'Monday-Friday: 5am-10pm, Weekends: 7am-8pm',
       mapLink: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3531.6754691376977!2d85.35439737546808!3d27.727304676171023!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb1b003f9d0a6f%3A0x16ed7c38c35db998!2sRBL%20Fitness%20Club!5e0!3m2!1sen!2snp!4v1741512187554!5m2!1sen!2snp'
     },
@@ -18,7 +18,7 @@ const Contact = () => {
       name: 'Downtown Branch',
       address: '456 Health Avenue, Downtown, State 12345',
       phone: '(555) 987-6543',
-      email: 'downtown@fitgym.com',
+      email: 'downtown@rblgym.com',
       hours: 'Monday-Friday: 6am-9pm, Weekends: 8am-6pm',
       mapLink: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3532.875859167983!2d85.35439741523194!3d27.72730468277806!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb1b003f9d0a6f%3A0x16ed7c38c35db998!2sRBL%20Fitness%20Club!5e0!3m2!1sen!2snp!4v1710000000000'
     }
