@@ -1,31 +1,36 @@
+// server/models/ContactMessage.js
 const mongoose = require('mongoose');
 
-const ContactMessageSchema = new mongoose.Schema({
+const contactMessageSchema = new mongoose.Schema({
   firstName: {
     type: String,
-    required: [true, 'First name is required']
+    required: true,
+    trim: true
   },
   lastName: {
     type: String,
-    required: [true, 'Last name is required']
+    required: true,
+    trim: true
   },
   email: {
     type: String,
-    required: [true, 'Email is required'],
-    match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please fill a valid email address']
+    required: true,
+    trim: true,
+    lowercase: true
   },
   phone: {
     type: String,
-    // Optional field
+    trim: true
   },
   subject: {
     type: String,
-    required: [true, 'Subject is required']
+    required: true,
+    trim: true
   },
   message: {
     type: String,
-    required: [true, 'Message is required'],
-    minlength: [10, 'Message must be at least 10 characters long']
+    required: true,
+    trim: true
   },
   preferredContact: {
     type: String,
@@ -34,13 +39,40 @@ const ContactMessageSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['unread', 'read', 'replied'],
-    default: 'unread'
+    enum: ['new', 'read', 'replied'],
+    default: 'new'
   },
+  replies: [{
+    content: {
+      type: String,
+      required: true
+    },
+    sentAt: {
+      type: Date,
+      default: Date.now
+    },
+    sentBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    }
+  }],
   createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
     type: Date,
     default: Date.now
   }
 });
 
-module.exports = mongoose.model('ContactMessage', ContactMessageSchema);
+// Update the updatedAt field on save
+contactMessageSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
+
+const ContactMessage = mongoose.model('ContactMessage', contactMessageSchema);
+
+module.exports = ContactMessage;

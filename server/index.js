@@ -4,8 +4,6 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-
-
 // Existing routes
 const authRoutes = require("./routes/authRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
@@ -19,6 +17,9 @@ const discountRoutes = require("./routes/discountRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 // const goalRoutes = require("./routes/goalRoutes");
 
+// Added contact routes
+const contactRoutes = require("./routes/contactRoutes");
+
 const app = express();
 
 // Regular middleware
@@ -28,7 +29,6 @@ app.use(express.json());
 //   origin: 'http://localhost:5173', // your frontend domain
 //   credentials: true,
 // }));
-
 
 app.use(cors());
 
@@ -55,7 +55,11 @@ app.use("/api/discounts", discountRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/trainers", trainerRoutes);
+app.use("/api/contact", contactRoutes);
 // app.use("/api/goals", goalRoutes);
+
+// Added contact routes
+app.use("/api/contact", contactRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, (err) => {
