@@ -119,6 +119,21 @@ const apiService = {
     }
   },
 
+  patch: async (endpoint, data, token = null) => {
+    try {
+      if (token) {
+        // For one-time use of a specific token
+        return await axios.patch(`${API_BASE_URL}/${endpoint}`, data, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(response => response.data);
+      }
+      // Use the interceptor for regular calls
+      return await api.patch(endpoint, data);
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Auth Routes
   register: async (userData) => {
     try {
@@ -437,6 +452,72 @@ const apiService = {
       return await api.get(`admin/${userId}/membership-history`);
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch user membership history');
+    }
+  },
+  
+  // Contact Routes
+  submitContactMessage: async (messageData) => {
+    try {
+      return await api.post('contact/messages', messageData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to send message');
+    }
+  },
+
+  // Admin Contact Message Routes
+  getAdminContactMessages: async (page = 1, limit = 10, sortField = 'createdAt', sortOrder = 'desc', filters = {}) => {
+    try {
+      let queryParams = new URLSearchParams({
+        page,
+        limit,
+        sortField,
+        sortOrder,
+        ...filters
+      }).toString();
+      
+      return await api.get(`contact/messages?${queryParams}`);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch contact messages');
+    }
+  },
+
+  getContactMessageById: async (messageId) => {
+    try {
+      return await api.get(`contact/messages/${messageId}`);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch message details');
+    }
+  },
+
+  replyToContactMessage: async (messageId, replyData) => {
+    try {
+      return await api.post(`contact/messages/${messageId}/reply`, replyData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to reply to message');
+    }
+  },
+
+  updateContactMessageStatus: async (messageId, status) => {
+    try {
+      return await api.patch(`contact/messages/${messageId}/status`, { status });
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to update message status');
+    }
+  },
+
+  deleteContactMessage: async (messageId) => {
+    try {
+      return await api.delete(`contact/messages/${messageId}`);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to delete message');
+    }
+  },
+
+  getContactMessageStats: async () => {
+    try {
+      return await api.get('contact/messages/stats');
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch message statistics');
     }
   },
     adminGetAllBookings: async (params = {}) => {

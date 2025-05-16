@@ -9,8 +9,10 @@ import {
   MenuItem, 
   Snackbar, 
   Alert,
-  Box
+  Box,
+  CircularProgress
 } from '@mui/material';
+import apiService from '../../services/apiService';
 
 const ContactForm = () => {
   const initialFormState = {
@@ -25,6 +27,7 @@ const ContactForm = () => {
 
   const [formData, setFormData] = useState(initialFormState);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -82,22 +85,45 @@ const ContactForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (validateForm()) {
-      // Here you would normally send the data to your backend
-      console.log('Form submitted:', formData);
+      setLoading(true);
       
-      // Show success message
-      setSnackbar({
-        open: true,
-        message: 'Your message has been sent! We\'ll get back to you soon.',
-        severity: 'success'
-      });
-      
-      // Reset form
-      setFormData(initialFormState);
+      try {
+        // Transform formData to match API expectations
+        const contactMessage = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone || null,
+          subject: formData.subject,
+          message: formData.message,
+          preferredContactMethod: formData.preferredContact
+        };
+        
+        // Submit to API
+        await apiService.submitContactMessage(contactMessage);
+        
+        // Show success message
+        setSnackbar({
+          open: true,
+          message: 'Your message has been sent! We\'ll get back to you soon.',
+          severity: 'success'
+        });
+        
+        // Reset form
+        setFormData(initialFormState);
+      } catch (error) {
+        setSnackbar({
+          open: true,
+          message: error.message || 'Failed to send message. Please try again later.',
+          severity: 'error'
+        });
+      } finally {
+        setLoading(false);
+      }
     } else {
       setSnackbar({
         open: true,
@@ -128,6 +154,7 @@ const ContactForm = () => {
             error={!!errors.firstName}
             helperText={errors.firstName}
             margin="normal"
+            disabled={loading}
           />
         </Grid>
         
@@ -142,6 +169,7 @@ const ContactForm = () => {
             error={!!errors.lastName}
             helperText={errors.lastName}
             margin="normal"
+            disabled={loading}
           />
         </Grid>
         
@@ -157,6 +185,7 @@ const ContactForm = () => {
             error={!!errors.email}
             helperText={errors.email}
             margin="normal"
+            disabled={loading}
           />
         </Grid>
         
@@ -170,11 +199,12 @@ const ContactForm = () => {
             error={!!errors.phone}
             helperText={errors.phone || "Optional"}
             margin="normal"
+            disabled={loading}
           />
         </Grid>
         
         <Grid item xs={12}>
-          <FormControl fullWidth margin="normal">
+          <FormControl fullWidth margin="normal" disabled={loading}>
             <InputLabel id="preferred-contact-label">Preferred Contact Method</InputLabel>
             <Select
               labelId="preferred-contact-label"
@@ -200,6 +230,7 @@ const ContactForm = () => {
             error={!!errors.subject}
             helperText={errors.subject}
             margin="normal"
+            disabled={loading}
           />
         </Grid>
         
@@ -216,6 +247,7 @@ const ContactForm = () => {
             error={!!errors.message}
             helperText={errors.message}
             margin="normal"
+            disabled={loading}
           />
         </Grid>
         
@@ -227,8 +259,9 @@ const ContactForm = () => {
             fullWidth
             size="large"
             sx={{ mt: 2 }}
+            disabled={loading}
           >
-            Send Message
+            {loading ? <CircularProgress size={24} color="inherit" /> : 'Send Message'}
           </Button>
         </Grid>
       </Grid>
