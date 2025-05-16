@@ -402,7 +402,7 @@ const apiService = {
   // Admin User Management Routes
   adminGetAllUsers: async () => {
     try {
-      return await api.get('admin/users');
+      return await api.get('admin');
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch all users');
     }
@@ -410,7 +410,7 @@ const apiService = {
 
   adminGetUserProfile: async (userId) => {
     try {
-      return await api.get(`admin/users/${userId}`);
+      return await api.get(`admin/${userId}`);
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch user profile');
     }
@@ -418,7 +418,7 @@ const apiService = {
 
   adminUpdateUserRole: async (userId, roleData) => {
     try {
-      return await api.put(`admin/users/${userId}/role`, roleData);
+      return await api.put(`admin/${userId}/role`, roleData);
     } catch (error) {
       throw error.response?.data || new Error('Failed to update user role');
     }
@@ -426,7 +426,7 @@ const apiService = {
 
   adminToggleUserStatus: async (userId, statusData) => {
     try {
-      return await api.put(`admin/users/${userId}/status`, statusData);
+      return await api.put(`admin/${userId}/status`, statusData);
     } catch (error) {
       throw error.response?.data || new Error('Failed to toggle user status');
     }
@@ -434,11 +434,25 @@ const apiService = {
 
   adminGetUserMembershipHistory: async (userId) => {
     try {
-      return await api.get(`admin/users/${userId}/membership-history`);
+      return await api.get(`admin/${userId}/membership-history`);
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch user membership history');
     }
+  },
+    adminGetAllBookings: async (params = {}) => {
+    try {
+      let queryString = '';
+      
+      if (Object.keys(params).length > 0) {
+        queryString = '?' + new URLSearchParams(params).toString();
+      }
+      
+      return await api.get(`admin/getallbookings${queryString}`);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch all bookings');
+    }
   }
+  
 };
 
 export default apiService;

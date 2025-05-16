@@ -8,14 +8,10 @@ import {
   Input,
   DatePicker,
   InputNumber,
-  Checkbox,
   Space,
   Card,
   Tag,
-  Spin,
   message,
-  Dropdown,
-  Menu,
   Tooltip,
 } from "antd";
 import {
@@ -23,8 +19,6 @@ import {
   FilterOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined,
-  SearchOutlined,
-  CalendarOutlined,
   UserOutlined,
   EditOutlined,
   DeleteOutlined,
@@ -78,32 +72,28 @@ const BookingsPanel = () => {
       setLoading(true);
 
       // Build query params for filtering and sorting
-      const queryParams = new URLSearchParams();
+      const queryParams = {
+        sortField,
+        sortDirection
+      };
 
-      if (filters.userName) queryParams.append("userName", filters.userName);
-      if (filters.userId) queryParams.append("userId", filters.userId);
-      if (filters.status) queryParams.append("status", filters.status);
-      if (filters.paymentInterval)
-        queryParams.append("paymentInterval", filters.paymentInterval);
+      if (filters.userName) queryParams.userName = filters.userName;
+      if (filters.userId) queryParams.userId = filters.userId;
+      if (filters.status) queryParams.status = filters.status;
+      if (filters.paymentInterval) queryParams.paymentInterval = filters.paymentInterval;
 
       if (filters.dateRange && filters.dateRange[0] && filters.dateRange[1]) {
-        queryParams.append(
-          "startDate",
-          filters.dateRange[0].format("YYYY-MM-DD")
-        );
-        queryParams.append(
-          "endDate",
-          filters.dateRange[1].format("YYYY-MM-DD")
-        );
+        queryParams.startDate = filters.dateRange[0].format("YYYY-MM-DD");
+        queryParams.endDate = filters.dateRange[1].format("YYYY-MM-DD");
       }
 
-      // Add sorting
-      queryParams.append("sortField", sortField);
-      queryParams.append("sortDirection", sortDirection);
-
-      // Make API call
-      const response = await apiService.get(`bookings?${queryParams}`);
-      setBookings(response);
+      // Make API call using adminGetAllBookings instead of the previous method
+      const response = await apiService.adminGetAllBookings(queryParams);
+      
+      // Check response structure and extract the bookings array
+      const bookingsData = response.data || response;
+      
+      setBookings(Array.isArray(bookingsData) ? bookingsData : []);
       setLoading(false);
     } catch (error) {
       console.error("Failed to fetch bookings:", error);
@@ -116,7 +106,13 @@ const BookingsPanel = () => {
   const fetchUsers = async () => {
     try {
       const response = await apiService.adminGetAllUsers();
-      setUsers(response);
+      
+      // Handle the response based on its structure
+      if (response && response.users && Array.isArray(response.users)) {
+        setUsers(response.users);
+      } else {
+        setUsers(Array.isArray(response) ? response : []);
+      }
     } catch (error) {
       console.error("Failed to fetch users:", error);
       message.error("Failed to load users");
@@ -161,7 +157,9 @@ const BookingsPanel = () => {
       startDate: record.startDate ? moment(record.startDate) : null,
       endDate: record.endDate ? moment(record.endDate) : null,
       customServices:
-        record.customServices?.map((service) => service._id) || [],
+        record.customServices?.map((service) => 
+          typeof service === 'object' ? service._id : service
+        ) || [],
     };
 
     form.setFieldsValue(formValues);
@@ -186,8 +184,8 @@ const BookingsPanel = () => {
       };
 
       if (isEditing) {
-        // Update existing booking
-        await apiService.upgradeBooking(currentBooking._id, bookingData);
+        // Update existing booking - using the correct API method
+        await apiService.put(`bookings/${currentBooking._id}`, bookingData);
         message.success("Booking updated successfully!");
       } else {
         // Create new booking
@@ -212,7 +210,8 @@ const BookingsPanel = () => {
   const handleDeleteBooking = async (id) => {
     try {
       setLoading(true);
-      await apiService.cancelMembership(id);
+      // Using delete endpoint instead of cancelMembership for admin
+      await apiService.delete(`bookings/${id}`);
       message.success("Booking deleted successfully!");
       fetchBookings();
     } catch (error) {
@@ -305,6 +304,54 @@ const BookingsPanel = () => {
     }
   };
 
+  // Helper function to safely get user name from booking
+  const getUserName = (booking) => {
+    if (booking && booking.user) {
+      if (typeof booking.user === 'object' && booking.user.name) {
+        return booking.user.name;
+      }
+      
+      // If user is just an ID, try to find user in users array
+      if (typeof booking.user === 'string') {
+        const foundUser = users.find(u => u._id === booking.user);
+        return foundUser ? foundUser.name : 'Unknown User';
+      }
+    }
+    return 'Unknown User';
+  };
+
+  // Helper function to safely get user email from booking
+  const getUserEmail = (booking) => {
+    if (booking && booking.user) {
+      if (typeof booking.user === 'object' && booking.user.email) {
+        return booking.user.email;
+      }
+      
+      // If user is just an ID, try to find user in users array
+      if (typeof booking.user === 'string') {
+        const foundUser = users.find(u => u._id === booking.user);
+        return foundUser ? foundUser.email : '';
+      }
+    }
+    return '';
+  };
+
+  // Helper function to safely get package name from booking
+  const getPackageName = (booking) => {
+    if (booking && booking.package) {
+      if (typeof booking.package === 'object' && booking.package.name) {
+        return booking.package.name;
+      }
+      
+      // If package is just an ID, try to find package in packages array
+      if (typeof booking.package === 'string') {
+        const foundPackage = packages.find(p => p._id === booking.package);
+        return foundPackage ? foundPackage.name : 'Unknown Package';
+      }
+    }
+    return 'Unknown Package';
+  };
+
   // Table columns configuration
   const columns = [
     {
@@ -328,11 +375,11 @@ const BookingsPanel = () => {
           </Button>
         </div>
       ),
-      dataIndex: ["user", "name"],
+      dataIndex: "user",
       key: "userName",
-      render: (text, record) => (
-        <Tooltip title={record.user.email}>
-          <span>{text}</span>
+      render: (user, record) => (
+        <Tooltip title={getUserEmail(record)}>
+          <span>{getUserName(record)}</span>
         </Tooltip>
       ),
     },
@@ -357,8 +404,9 @@ const BookingsPanel = () => {
           </Button>
         </div>
       ),
-      dataIndex: ["package", "name"],
+      dataIndex: "package",
       key: "packageName",
+      render: (pkg, record) => getPackageName(record),
     },
     {
       title: (
@@ -383,7 +431,7 @@ const BookingsPanel = () => {
       ),
       dataIndex: "startDate",
       key: "startDate",
-      render: (text) => moment(text).format("MMM DD, YYYY"),
+      render: (text) => (text ? moment(text).format("MMM DD, YYYY") : "N/A"),
     },
     {
       title: (
@@ -408,7 +456,7 @@ const BookingsPanel = () => {
       ),
       dataIndex: "endDate",
       key: "endDate",
-      render: (text) => moment(text).format("MMM DD, YYYY"),
+      render: (text) => (text ? moment(text).format("MMM DD, YYYY") : "N/A"),
     },
     {
       title: "Time Slot",
@@ -419,7 +467,7 @@ const BookingsPanel = () => {
       title: "Payment",
       dataIndex: "paymentInterval",
       key: "paymentInterval",
-      render: (text) => text,
+      render: (text) => text || "N/A",
     },
     {
       title: (
@@ -444,7 +492,7 @@ const BookingsPanel = () => {
       ),
       dataIndex: "totalPrice",
       key: "totalPrice",
-      render: (text) => `$${text.toFixed(2)}`,
+      render: (text) => (text ? `$${text.toFixed(2)}` : "$0.00"),
     },
     {
       title: "Status",
@@ -457,7 +505,7 @@ const BookingsPanel = () => {
             : status === "Expired"
             ? "volcano"
             : "red";
-        return <Tag color={color}>{status}</Tag>;
+        return <Tag color={color}>{status || "Unknown"}</Tag>;
       },
     },
     {
@@ -484,7 +532,7 @@ const BookingsPanel = () => {
           </Tooltip>
           <Tooltip title="Delete Booking">
             <Button
-              type="danger"
+              danger
               ghost
               icon={<DeleteOutlined />}
               size="small"
@@ -630,9 +678,9 @@ const BookingsPanel = () => {
               showSearch
               optionFilterProp="children"
             >
-              {(Array.isArray(users) ? users : []).map((user) => (
+              {users.map((user) => (
                 <Option key={user._id} value={user._id}>
-                  {user.name} ({user.email})
+                  {user.name || `User ${user._id}`}
                 </Option>
               ))}
             </Select>
@@ -646,7 +694,7 @@ const BookingsPanel = () => {
             <Select placeholder="Select package">
               {packages.map((pkg) => (
                 <Option key={pkg._id} value={pkg._id}>
-                  {pkg.name} (${pkg.basePrice.toFixed(2)})
+                  {pkg.name} (${pkg.basePrice ? pkg.basePrice.toFixed(2) : "0.00"})
                 </Option>
               ))}
             </Select>
@@ -660,7 +708,7 @@ const BookingsPanel = () => {
             >
               {services.map((service) => (
                 <Option key={service._id} value={service._id}>
-                  {service.name} (${service.price.toFixed(2)})
+                  {service.name} (${service.price ? service.price.toFixed(2) : "0.00"})
                 </Option>
               ))}
             </Select>

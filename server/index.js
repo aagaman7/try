@@ -46,7 +46,7 @@ mongoose
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/admin/users", adminRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Membership System Routes
 app.use("/api/packages", packageRoutes);

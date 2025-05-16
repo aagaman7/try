@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Card, Row, Col, Statistic, Avatar, List, Typography, Divider, Space, Spin, Alert, Empty
+  Card, Row, Col, Statistic, Avatar, List, Typography, Divider, Space, Spin, Alert, Empty,
+  Table, Tag
 } from 'antd';
 import {
-  UserOutlined, RiseOutlined, ApartmentOutlined, DollarOutlined, CalendarOutlined
+  UserOutlined, RiseOutlined, ApartmentOutlined, DollarOutlined, CalendarOutlined,
+  ClockCircleOutlined, AimOutlined
 } from '@ant-design/icons';
+import moment from 'moment';
 import apiService from '../../services/apiService'; // Adjust path according to your project structure
 
 const { Title, Text } = Typography;
@@ -14,23 +17,43 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
   const [recentActivities, setRecentActivities] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [users, setUsers] = useState({});
+  
+  // Filter and search states
+  const [filters, setFilters] = useState({
+    userName: "",
+    userId: "",
+    dateRange: null,
+    status: null,
+    paymentInterval: null,
+  });
+
+  // Sorting state
+  const [sortField, setSortField] = useState("createdAt");
+  const [sortDirection, setSortDirection] = useState("desc"); // 'desc' or 'asc'
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
         
-        // For admin dashboard, we'll need to fetch several endpoints
-        const [
-          usersData,
-          bookingsData,
-          packagesData
-        ] = await Promise.all([
-          apiService.adminGetAllUsers(),
-          apiService.getUserBookings(), // Assuming this endpoint returns all bookings for admin
-          apiService.getPackages()
-        ]);
+        // Fetch bookings using the new API
+        const bookingsResponse = await apiService.adminGetAllBookings();
+        const bookingsData = bookingsResponse.data || [];
         
+        // Fetch users data
+        const usersData = await apiService.adminGetAllUsers();
+        const packagesData = await apiService.getPackages();
+        
+        // Create a map of users for easy lookup
+        const usersMap = {};
+        usersData.users.forEach(user => {
+          usersMap[user._id] = user;
+        });
+        setUsers(usersMap);
+        setBookings(bookingsData); // Set the bookings directly from the response
+
         // Calculate revenue from bookings
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
@@ -42,12 +65,16 @@ const Dashboard = () => {
                    bookingDate.getFullYear() === currentYear;
           })
           .reduce((total, booking) => total + booking.totalPrice, 0);
+
+        // Count unique users who have bookings
+        const uniqueBookingUsers = new Set(bookingsData.map(booking => booking.user._id));
         
         // Count active memberships
         const activeMemberships = bookingsData.filter(booking => booking.status === 'Active').length;
         
         setDashboardData({
-          totalUsers: usersData.length,
+          totalUsers: usersData.users.length,
+          activeUsers: uniqueBookingUsers.size,
           activeMemberships,
           totalPackages: packagesData.length,
           thisMonthRevenue
@@ -60,12 +87,14 @@ const Dashboard = () => {
         
         const activities = sortedBookings.map(booking => {
           const timeAgo = getTimeAgo(new Date(booking.createdAt));
+          const packageName = booking.package?.name || "Unknown Package";
           
           return {
             id: booking._id,
             title: `New booking created`,
-            description: `User purchased the ${booking.package.name} package`,
-            timeAgo
+            description: `${booking.user.name} purchased the ${packageName} package`,
+            timeAgo,
+            goal: booking.goals && booking.goals.length > 0 ? booking.goals[0] : "No goal specified"
           };
         });
         
@@ -135,6 +164,68 @@ const Dashboard = () => {
     ];
   };
 
+  // Table columns configuration for recent bookings - updated for new data structure
+  const recentBookingsColumns = [
+    {
+      title: "User",
+      key: "user",
+      render: (record) => (
+        <Space>
+          <Avatar icon={<UserOutlined />} />
+          <span>{record.user?.name || "Unknown User"}</span>
+        </Space>
+      ),
+    },
+    {
+      title: "Package",
+      key: "packageName",
+      render: (record) => record.package?.name || "Unknown Package",
+    },
+    {
+      title: "Time Slot",
+      dataIndex: "timeSlot",
+      key: "timeSlot",
+      render: (timeSlot) => timeSlot || "Not specified",
+    },
+    {
+      title: "Goal",
+      dataIndex: "goals",
+      key: "goals",
+      render: (goals) => goals && goals.length > 0 ? goals[0] : "Not specified",
+    },
+    {
+      title: "Start Date",
+      dataIndex: "startDate",
+      key: "startDate",
+      render: (text) => moment(text).format("MMM DD, YYYY"),
+    },
+    {
+      title: "Payment",
+      dataIndex: "paymentInterval",
+      key: "paymentInterval",
+    },
+    {
+      title: "Price",
+      dataIndex: "totalPrice",
+      key: "totalPrice",
+      render: (text) => `$${text.toFixed(2)}`,
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => {
+        let color =
+          status === "Active"
+            ? "green"
+            : status === "Expired"
+            ? "volcano"
+            : "red";
+        return <Tag color={color}>{status}</Tag>;
+      },
+    },
+  ];
+
   if (loading) {
     return (
       <Card>
@@ -184,7 +275,7 @@ const Dashboard = () => {
       </Row>
 
       {/* Recent Activity */}
-      <Card title="Recent Activity">
+      <Card title="Recent Activity" style={{ marginBottom: 24 }}>
         {recentActivities.length > 0 ? (
           <List
             itemLayout="horizontal"
@@ -196,7 +287,17 @@ const Dashboard = () => {
                 <List.Item.Meta
                   avatar={<Avatar icon={<CalendarOutlined />} />}
                   title={item.title}
-                  description={item.description}
+                  description={
+                    <>
+                      <div>{item.description}</div>
+                      <div>
+                        <Space>
+                          <AimOutlined /> 
+                          <Text type="secondary">Goal: {item.goal}</Text>
+                        </Space>
+                      </div>
+                    </>
+                  }
                 />
               </List.Item>
             )}
@@ -204,6 +305,17 @@ const Dashboard = () => {
         ) : (
           <Empty description="No recent activities" />
         )}
+      </Card>
+
+      {/* Recent Bookings Table */}
+      <Card title="Recent Bookings">
+        <Table 
+          dataSource={bookings.slice(0, 5)}
+          columns={recentBookingsColumns}
+          rowKey="_id"
+          pagination={false}
+          size="small"
+        />
       </Card>
     </Card>
   );

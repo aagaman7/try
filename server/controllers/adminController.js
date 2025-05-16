@@ -6,7 +6,7 @@ console.log("Defining getAllUsers function"); // Add this line
 exports.getAllUsers = async (req, res) => {
     console.log("getAllUsers called"); // Add this line
     try {
-    const { page = 1, limit = 10, role, search } = req.query;
+    const { page = 1, limit = 50, role, search } = req.query;
     
     // Build query conditions
     const query = {};
@@ -103,5 +103,33 @@ exports.getUserMembershipHistory = async (req, res) => {
     res.json(bookings);
   } catch (error) {
     res.status(500).json({ message: "Error retrieving membership history", error: error.message });
+  }
+};
+
+exports.getAllBookings = async (req, res) => {
+  try {
+    // Fetch all bookings and populate related models
+    const bookings = await Booking.find()
+      .populate({
+        path: 'user',
+        select: 'name email' // Only return non-sensitive user info
+      })
+      .populate('package')
+      .populate('customServices')
+      .sort({ createdAt: -1 }); // Sort by newest first
+
+    // Return success response with bookings data
+    return res.status(200).json({
+      success: true,
+      count: bookings.length,
+      data: bookings
+    });
+  } catch (error) {
+    console.error('Error fetching bookings:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while fetching bookings',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };

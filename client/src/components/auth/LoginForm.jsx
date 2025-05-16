@@ -26,7 +26,7 @@ const LoginForm = () => {
       // Update auth context state
       login(data.user);
       
-      navigate("/dashboard"); // Redirect on success
+      navigate("/"); // Redirect on success
     } catch (err) {
       setError(err.message || "Login failed. Please try again.");
     } finally {

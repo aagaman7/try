@@ -20,7 +20,7 @@ const Navbar = () => {
     try {
       const success = await logout();
       if (success) {
-        navigate('/'); // Redirect to home page after successful logout
+        navigate('/login'); // Redirect to home page after successful logout
       }
     } catch (error) {
       console.error("Failed to log out", error);

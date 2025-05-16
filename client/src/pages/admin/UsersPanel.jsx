@@ -111,48 +111,35 @@ const UsersPanel = () => {
     }
   };
 
-  // Fetch bookings data
+  // Fetch bookings data using the new adminGetAllBookings API
   const fetchBookings = async () => {
     try {
-      // Get all users first
-      const allUsers = await fetchUsers(); // Reuse the function to ensure consistent data
+      const response = await apiService.adminGetAllBookings();
       
-      if (!Array.isArray(allUsers)) {
-        throw new Error('Users data is not an array');
+      if (!response || !response.success || !Array.isArray(response.data)) {
+        throw new Error('Invalid bookings response format');
       }
       
-      let allBookings = [];
-      
-      await Promise.all(allUsers.map(async (user) => {
-        if (!user || !user._id) return; // Skip if user or user ID is invalid
-        
-        try {
-          // Get user profile to access their bookings
-          const userProfile = await apiService.adminGetUserProfile(user._id);
-          
-          if (userProfile && userProfile.bookings && Array.isArray(userProfile.bookings) && userProfile.bookings.length > 0) {
-            const userBookings = userProfile.bookings.map(booking => ({
-              _id: booking._id || `temp-${Date.now()}-${Math.random()}`,
-              user: user._id,
-              package: booking.packageName || 'Unknown Package',
-              timeSlot: booking.timeSlot,
-              workoutDaysPerWeek: booking.daysPerWeek,
-              paymentInterval: booking.paymentInterval || 'Monthly',
-              totalPrice: booking.totalPrice || 0,
-              startDate: booking.startDate,
-              endDate: booking.endDate,
-              status: booking.status || 'Unknown'
-            }));
-            
-            allBookings = [...allBookings, ...userBookings];
-          }
-        } catch (err) {
-          console.error(`Error fetching bookings for user ${user._id}:`, err);
-        }
+      // Transform the booking data to match the component's expected format
+      const formattedBookings = response.data.map(booking => ({
+        _id: booking._id,
+        user: booking.user?._id,
+        userName: booking.user?.name || 'Unknown User',
+        userEmail: booking.user?.email || 'No Email',
+        package: booking.package?.name || 'Unknown Package',
+        timeSlot: booking.timeSlot,
+        workoutDaysPerWeek: booking.workoutDaysPerWeek,
+        paymentInterval: booking.paymentInterval || 'Monthly',
+        totalPrice: booking.totalPrice || 0,
+        startDate: booking.startDate,
+        endDate: booking.endDate,
+        status: booking.status || 'Unknown',
+        stripePaymentId: booking.stripePaymentId,
+        customServices: booking.customServices || []
       }));
       
-      setBookings(allBookings);
-      return allBookings;
+      setBookings(formattedBookings);
+      return formattedBookings;
     } catch (error) {
       console.error('Error fetching bookings data:', error);
       message.error('Failed to fetch booking information');

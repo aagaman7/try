@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, Home, Users, Calendar, Package, Dumbbell, Tag, LogOut, ChevronRight, ChevronDown, ChevronLeft } from "lucide-react";
+import { useAuth } from "../../context/AuthContext"; // Import the AuthContext
 
 function GymAdminPanel() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { currentUser, logout } = useAuth(); // Use the same auth context as in Navbar
 
   // Check if screen is mobile on load and when resized
   useEffect(() => {
@@ -29,17 +31,26 @@ function GymAdminPanel() {
     setSidebarOpen(!sidebarOpen);
   };
 
-  const handleLogout = () => {
-    // Implement your logout logic here
-    console.log("Logging out...");
-    // Example: clear local storage, cookies, etc.
-    localStorage.removeItem("auth-token");
-    // Redirect to login page
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      const success = await logout();
+      if (success) {
+        navigate("/login"); // Redirect to login page after successful logout
+      }
+    } catch (error) {
+      console.error("Failed to log out", error);
+    }
+  };
+
+  const getUserInitials = () => {
+    if (currentUser && currentUser.name) {
+      return currentUser.name.charAt(0).toUpperCase();
+    }
+    return "U"; // Default if no name is available
   };
 
   const navItems = [
-    { path: "/", name: "Dashboard", icon: <Home size={20} /> },
+    { path: "/admin", name: "Dashboard", icon: <Home size={20} /> },
     { path: "users", name: "Users", icon: <Users size={20} /> },
     { path: "bookings", name: "Bookings", icon: <Calendar size={20} /> },
     { path: "packages", name: "Packages", icon: <Package size={20} /> },
@@ -65,6 +76,21 @@ function GymAdminPanel() {
           </button>
         </div>
 
+        {/* User Profile in Sidebar */}
+        {sidebarOpen && currentUser && (
+          <div className="px-4 py-3 border-b border-gray-700">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center">
+                {getUserInitials()}
+              </div>
+              <div className="flex flex-col">
+                <span className="font-medium">{currentUser.name || "Admin User"}</span>
+                <span className="text-xs text-gray-400">{currentUser.email || ""}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         <nav className="mt-4">
           <ul>
             {navItems.map((item) => (
@@ -72,7 +98,9 @@ function GymAdminPanel() {
                 <Link
                   to={item.path}
                   className={`flex items-center p-4 hover:bg-gray-700 ${
-                    location.pathname === item.path ? "bg-gray-700" : ""
+                    location.pathname === "/admin" + item.path || 
+                    (location.pathname === "/admin" && item.path === "/admin") ? 
+                    "bg-gray-700" : ""
                   } ${sidebarOpen ? "" : "justify-center"}`}
                 >
                   <span className="mr-3">{item.icon}</span>
@@ -106,14 +134,27 @@ function GymAdminPanel() {
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
           <h2 className="text-xl font-semibold">
-            {navItems.find(item => item.path === location.pathname)?.name || "Dashboard"}
+            {navItems.find(item => item.path === location.pathname || 
+            "/admin/" + item.path === location.pathname || 
+            (location.pathname === "/admin" && item.path === "/admin"))?.name || "Dashboard"}
           </h2>
+          
+          {/* User Profile in Header */}
           <div className="ml-auto flex items-center gap-4">
-            <div className="relative">
-              <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
-                <span className="text-sm font-medium">JD</span>
+            {currentUser ? (
+              <div className="relative flex items-center space-x-2">
+                <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition-colors">
+                  {getUserInitials()}
+                </div>
+                {!isMobile && (
+                  <span className="font-medium hidden md:block">{currentUser.name || "Admin User"}</span>
+                )}
               </div>
-            </div>
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                <span className="text-sm font-medium">U</span>
+              </div>
+            )}
           </div>
         </header>
 
