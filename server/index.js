@@ -18,7 +18,7 @@ const bookingRoutes = require("./routes/bookingRoutes");
 // const goalRoutes = require("./routes/goalRoutes");
 
 // Added contact routes
-const contactRoutes = require("./routes/contactRoutes");
+// const contactRoutes = require("./routes/contactRoutes");
 
 const app = express();
 
@@ -55,11 +55,11 @@ app.use("/api/discounts", discountRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/trainers", trainerRoutes);
-app.use("/api/contact", contactRoutes);
+// app.use("/api/contact", contactRoutes);
 // app.use("/api/goals", goalRoutes);
 
 // Added contact routes
-app.use("/api/contact", contactRoutes);
+// app.use("/api/contact", contactRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, (err) => {
