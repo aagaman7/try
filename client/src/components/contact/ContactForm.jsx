@@ -22,7 +22,7 @@ const ContactForm = () => {
     phone: '',
     subject: '',
     message: '',
-    preferredContact: 'email'
+    preferredContactMethod: 'email'
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -92,19 +92,8 @@ const ContactForm = () => {
       setLoading(true);
       
       try {
-        // Transform formData to match API expectations
-        const contactMessage = {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone || null,
-          subject: formData.subject,
-          message: formData.message,
-          preferredContactMethod: formData.preferredContact
-        };
-        
         // Submit to API
-        await apiService.submitContactMessage(contactMessage);
+        await apiService.submitContactMessage(formData);
         
         // Show success message
         setSnackbar({
@@ -116,6 +105,7 @@ const ContactForm = () => {
         // Reset form
         setFormData(initialFormState);
       } catch (error) {
+        console.error('Contact form submission error:', error);
         setSnackbar({
           open: true,
           message: error.message || 'Failed to send message. Please try again later.',
@@ -124,12 +114,6 @@ const ContactForm = () => {
       } finally {
         setLoading(false);
       }
-    } else {
-      setSnackbar({
-        open: true,
-        message: 'Please correct the errors in the form.',
-        severity: 'error'
-      });
     }
   };
 
@@ -204,14 +188,14 @@ const ContactForm = () => {
         </Grid>
         
         <Grid item xs={12}>
-          <FormControl fullWidth margin="normal" disabled={loading}>
+          <FormControl fullWidth margin="normal">
             <InputLabel id="preferred-contact-label">Preferred Contact Method</InputLabel>
             <Select
               labelId="preferred-contact-label"
-              name="preferredContact"
-              value={formData.preferredContact}
+              name="preferredContactMethod"
+              value={formData.preferredContactMethod}
               onChange={handleChange}
-              label="Preferred Contact Method"
+              disabled={loading}
             >
               <MenuItem value="email">Email</MenuItem>
               <MenuItem value="phone">Phone</MenuItem>
@@ -240,42 +224,41 @@ const ContactForm = () => {
             required
             label="Message"
             name="message"
-            multiline
-            rows={4}
             value={formData.message}
             onChange={handleChange}
             error={!!errors.message}
             helperText={errors.message}
             margin="normal"
+            multiline
+            rows={4}
             disabled={loading}
           />
         </Grid>
         
         <Grid item xs={12}>
-          <Button 
-            type="submit" 
-            variant="contained" 
-            color="primary" 
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
             fullWidth
-            size="large"
-            sx={{ mt: 2 }}
             disabled={loading}
+            sx={{ mt: 2 }}
           >
-            {loading ? <CircularProgress size={24} color="inherit" /> : 'Send Message'}
+            {loading ? <CircularProgress size={24} /> : 'Send Message'}
           </Button>
         </Grid>
       </Grid>
-      
+
       <Snackbar 
         open={snackbar.open} 
         autoHideDuration={6000} 
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <Alert 
           onClose={handleCloseSnackbar} 
           severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          variant="filled"
         >
           {snackbar.message}
         </Alert>

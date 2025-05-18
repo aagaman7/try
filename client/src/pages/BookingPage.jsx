@@ -154,10 +154,10 @@ const BookingForm = () => {
   ];
 
   const mockServices = [
-    { _id: '1', name: 'Personal Training Session', price: 40 },
-    { _id: '2', name: 'Nutrition Consultation', price: 35 },
-    { _id: '3', name: 'Body Composition Analysis', price: 20 },
-    { _id: '4', name: 'Recovery Massage', price: 50 }
+    { _id: '1', name: 'Personal Training Session', price: 40, description: 'One-on-one training with certified fitness experts', icon: 'User' },
+    { _id: '2', name: 'Nutrition Consultation', price: 35, description: 'Personalized diet planning and nutritional guidance', icon: 'Utensils' },
+    { _id: '3', name: 'Body Composition Analysis', price: 20, description: 'Detailed body measurements and composition tracking', icon: 'Activity' },
+    { _id: '4', name: 'Recovery Massage', price: 50, description: 'Professional sports massage therapy', icon: 'Heart' }
   ];
 
   // Use mock data if API call hasn't returned results yet
@@ -329,24 +329,47 @@ const BookingForm = () => {
             <h3 className="text-lg font-semibold mb-3 flex items-center">
               <Users className="mr-2" size={20} />
               Additional Services
+              <span className="ml-2 text-sm font-normal text-gray-600">(Select any services you'd like to add)</span>
             </h3>
-            <div className="grid md:grid-cols-2 gap-3">
+            <div className="grid md:grid-cols-2 gap-4">
               {displayServices.map(service => (
-                <label key={service._id} className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${formData.customServices.includes(service._id) ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
-                  <input
-                    type="checkbox"
-                    value={service._id}
-                    onChange={handleChange}
-                    checked={formData.customServices.includes(service._id)}
-                    className="mr-3"
-                  />
-                  <div>
-                    <span className="font-medium">{service.name}</span>
-                    <span className="ml-2 text-blue-600">(+${service.price})</span>
+                <label key={service._id} className={`flex flex-col p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${formData.customServices.includes(service._id) ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+                  <div className="flex items-start">
+                    <input
+                      type="checkbox"
+                      value={service._id}
+                      onChange={handleChange}
+                      checked={formData.customServices.includes(service._id)}
+                      className="mt-1 mr-3"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-900">{service.name}</span>
+                        <span className="text-blue-600 font-semibold">${service.price}</span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">{service.description || 'Additional fitness service'}</p>
+                    </div>
                   </div>
+                  {formData.customServices.includes(service._id) && (
+                    <div className="mt-2 text-sm text-blue-600">
+                      <CheckCircle className="inline-block mr-1" size={16} /> Added to your package
+                    </div>
+                  )}
                 </label>
               ))}
             </div>
+            {formData.customServices.length > 0 && (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <div className="font-medium text-blue-800">
+                  Selected Additional Services: {formData.customServices.length}
+                </div>
+                <div className="text-sm text-blue-600 mt-1">
+                  Total additional cost: ${displayServices
+                    .filter(service => formData.customServices.includes(service._id))
+                    .reduce((total, service) => total + service.price, 0)}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-8 text-center">

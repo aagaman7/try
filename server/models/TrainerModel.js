@@ -9,12 +9,15 @@ const ReviewSchema = new mongoose.Schema({
 });
 
 const AvailabilitySchema = new mongoose.Schema({
-  date: { type: String, required: true },
-  times: [{ type: String }]
+  day: { type: String, required: true },
+  startTime: { type: String, required: true },
+  endTime: { type: String, required: true }
 });
 
 const TrainerSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  phone: { type: String },
   specialization: { type: String, required: true },
   image: { type: String, default: "/api/placeholder/300/300" },
   experience: { type: String, required: true },
@@ -24,7 +27,8 @@ const TrainerSchema = new mongoose.Schema({
   qualifications: [{ type: String }],
   reviews: [ReviewSchema],
   availability: [AvailabilitySchema],
-  isActive: { type: Boolean, default: true }
+  isActive: { type: Boolean, default: true },
+  lastActive: { type: Date }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Trainer", TrainerSchema);

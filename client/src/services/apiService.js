@@ -458,69 +458,46 @@ const apiService = {
   // Contact Routes
   submitContactMessage: async (messageData) => {
     try {
-      return await api.post('contact/messages', messageData);
+      return await api.post('contact/send', messageData);
     } catch (error) {
-      throw error.response?.data || new Error('Failed to send message');
+      throw error.response?.data || new Error('Failed to send contact message');
     }
   },
 
-  // Admin Contact Message Routes
-  getAdminContactMessages: async (page = 1, limit = 10, sortField = 'createdAt', sortOrder = 'desc', filters = {}) => {
+  // Admin Contact Routes
+  getAllContactMessages: async () => {
     try {
-      let queryParams = new URLSearchParams({
-        page,
-        limit,
-        sortField,
-        sortOrder,
-        ...filters
-      }).toString();
-      
-      return await api.get(`contact/messages?${queryParams}`);
+      return await api.get('contact');
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch contact messages');
     }
   },
 
-  getContactMessageById: async (messageId) => {
+  getContactMessage: async (messageId) => {
     try {
-      return await api.get(`contact/messages/${messageId}`);
+      return await api.get(`contact/${messageId}`);
     } catch (error) {
-      throw error.response?.data || new Error('Failed to fetch message details');
+      throw error.response?.data || new Error('Failed to fetch contact message');
     }
   },
 
-  replyToContactMessage: async (messageId, replyData) => {
+  updateMessageStatus: async (messageId, status) => {
     try {
-      return await api.post(`contact/messages/${messageId}/reply`, replyData);
-    } catch (error) {
-      throw error.response?.data || new Error('Failed to reply to message');
-    }
-  },
-
-  updateContactMessageStatus: async (messageId, status) => {
-    try {
-      return await api.patch(`contact/messages/${messageId}/status`, { status });
+      return await api.put(`contact/${messageId}/status`, { status });
     } catch (error) {
       throw error.response?.data || new Error('Failed to update message status');
     }
   },
 
-  deleteContactMessage: async (messageId) => {
+  replyToMessage: async (messageId, replyData) => {
     try {
-      return await api.delete(`contact/messages/${messageId}`);
+      return await api.post(`contact/${messageId}/reply`, replyData);
     } catch (error) {
-      throw error.response?.data || new Error('Failed to delete message');
+      throw error.response?.data || new Error('Failed to send reply');
     }
   },
 
-  getContactMessageStats: async () => {
-    try {
-      return await api.get('contact/messages/stats');
-    } catch (error) {
-      throw error.response?.data || new Error('Failed to fetch message statistics');
-    }
-  },
-    adminGetAllBookings: async (params = {}) => {
+  adminGetAllBookings: async (params = {}) => {
     try {
       let queryString = '';
       

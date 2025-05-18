@@ -13,6 +13,7 @@ import {
   Tag,
   message,
   Tooltip,
+  Descriptions,
 } from "antd";
 import {
   PlusOutlined,
@@ -21,7 +22,6 @@ import {
   SortDescendingOutlined,
   UserOutlined,
   EditOutlined,
-  DeleteOutlined,
   EyeOutlined,
 } from "@ant-design/icons";
 import moment from "moment";
@@ -35,6 +35,7 @@ const BookingsPanel = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [viewModalVisible, setViewModalVisible] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentBooking, setCurrentBooking] = useState(null);
   const [form] = Form.useForm();
@@ -207,19 +208,10 @@ const BookingsPanel = () => {
     }
   };
 
-  const handleDeleteBooking = async (id) => {
-    try {
-      setLoading(true);
-      // Using delete endpoint instead of cancelMembership for admin
-      await apiService.delete(`bookings/${id}`);
-      message.success("Booking deleted successfully!");
-      fetchBookings();
-    } catch (error) {
-      console.error("Failed to delete booking:", error);
-      message.error("Error deleting booking");
-    } finally {
-      setLoading(false);
-    }
+  // Handle viewing booking details
+  const handleViewBooking = (record) => {
+    setCurrentBooking(record);
+    setViewModalVisible(true);
   };
 
   // Handle filtering
@@ -519,7 +511,7 @@ const BookingsPanel = () => {
               ghost
               icon={<EyeOutlined />}
               size="small"
-              onClick={() => handleEditBooking(record)}
+              onClick={() => handleViewBooking(record)}
             />
           </Tooltip>
           <Tooltip title="Edit Booking">
@@ -528,15 +520,6 @@ const BookingsPanel = () => {
               icon={<EditOutlined />}
               size="small"
               onClick={() => handleEditBooking(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Delete Booking">
-            <Button
-              danger
-              ghost
-              icon={<DeleteOutlined />}
-              size="small"
-              onClick={() => handleDeleteBooking(record._id)}
             />
           </Tooltip>
         </Space>
@@ -642,6 +625,80 @@ const BookingsPanel = () => {
           pageSizeOptions: ["5", "10", "20", "50"],
         }}
       />
+
+      {/* View Details Modal */}
+      <Modal
+        title="Booking Details"
+        visible={viewModalVisible}
+        onCancel={() => setViewModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setViewModalVisible(false)}>
+            Close
+          </Button>
+        ]}
+        width={800}
+      >
+        {currentBooking && (
+          <Descriptions bordered column={2}>
+            <Descriptions.Item label="Member Name">
+              {getUserName(currentBooking)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Member Email">
+              {getUserEmail(currentBooking)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Package">
+              {getPackageName(currentBooking)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Time Slot">
+              {currentBooking.timeSlot}
+            </Descriptions.Item>
+            <Descriptions.Item label="Start Date">
+              {currentBooking.startDate
+                ? moment(currentBooking.startDate).format("MMM DD, YYYY")
+                : "N/A"}
+            </Descriptions.Item>
+            <Descriptions.Item label="End Date">
+              {currentBooking.endDate
+                ? moment(currentBooking.endDate).format("MMM DD, YYYY")
+                : "N/A"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Payment Interval">
+              {currentBooking.paymentInterval || "N/A"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Total Price">
+              ${currentBooking.totalPrice ? currentBooking.totalPrice.toFixed(2) : "0.00"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Status">
+              <Tag color={
+                currentBooking.status === "Active"
+                  ? "green"
+                  : currentBooking.status === "Expired"
+                  ? "volcano"
+                  : "red"
+              }>
+                {currentBooking.status || "Unknown"}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="Workout Days/Week">
+              {currentBooking.workoutDaysPerWeek}
+            </Descriptions.Item>
+            <Descriptions.Item label="Fitness Goals" span={2}>
+              {currentBooking.goals ? currentBooking.goals.join(", ") : "N/A"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Custom Services" span={2}>
+              {currentBooking.customServices && currentBooking.customServices.length > 0
+                ? currentBooking.customServices.map(service => {
+                    const serviceObj = services.find(s => s._id === (typeof service === 'object' ? service._id : service));
+                    return serviceObj ? serviceObj.name : '';
+                  }).join(", ")
+                : "None"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Stripe Payment ID" span={2}>
+              {currentBooking.stripePaymentId || "N/A"}
+            </Descriptions.Item>
+          </Descriptions>
+        )}
+      </Modal>
 
       {/* Booking Form Modal */}
       <Modal

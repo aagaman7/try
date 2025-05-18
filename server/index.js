@@ -15,6 +15,7 @@ const packageRoutes = require("./routes/packageRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const discountRoutes = require("./routes/discountRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
+const contactRoutes = require("./routes/contactRoutes");
 // const goalRoutes = require("./routes/goalRoutes");
 
 // Added contact routes
@@ -25,12 +26,13 @@ const app = express();
 // Regular middleware
 app.use(express.json());
 
-// app.use(cors({
-//   origin: 'http://localhost:5173', // your frontend domain
-//   credentials: true,
-// }));
-
-app.use(cors());
+// Configure CORS
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000'], // Add your frontend URLs
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
 // Connect to MongoDB Atlas
 const MONGO_URI = process.env.MONGO_URI;
@@ -55,7 +57,7 @@ app.use("/api/discounts", discountRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/trainers", trainerRoutes);
-// app.use("/api/contact", contactRoutes);
+app.use("/api/contact", contactRoutes);
 // app.use("/api/goals", goalRoutes);
 
 // Added contact routes

@@ -4,7 +4,7 @@ import {
   Input, Select, message, Tooltip, Tabs, Badge, Descriptions
 } from 'antd';
 import { 
-  PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined,
+  PlusOutlined, EditOutlined, UserOutlined,
   DollarOutlined, CalendarOutlined, CreditCardOutlined
 } from '@ant-design/icons';
 import apiService from '../../services/apiService'; // Import your API service
@@ -155,7 +155,7 @@ const UsersPanel = () => {
     // Format user data for the form
     const formData = {
       ...user,
-      role: user.role // Ensure role is properly set
+      role: user.role
     };
     
     form.setFieldsValue(formData);
@@ -168,26 +168,6 @@ const UsersPanel = () => {
     setCurrentUser(null);
     form.resetFields();
     setModalVisible(true);
-  };
-
-  // Handle delete user
-  const handleDelete = async (userId) => {
-    try {
-      setLoading(true);
-      
-      // Using the admin toggle user status API to deactivate user
-      await apiService.adminToggleUserStatus(userId, { active: false });
-      
-      message.success('User deactivated successfully!');
-      
-      // Refresh the user list
-      fetchUsers();
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      message.error('Failed to delete user');
-    } finally {
-      setLoading(false);
-    }
   };
 
   // Handle modal close
@@ -306,7 +286,7 @@ const UsersPanel = () => {
       dataIndex: 'role',
       key: 'role',
       render: (role) => {
-        let color = role === 'Admin' ? 'purple' : role === 'Trainer' ? 'blue' : 'green';
+        let color = role === 'Admin' ? 'purple' : 'green';
         return <Tag color={color}>{role || 'Member'}</Tag>;
       },
     },
@@ -323,70 +303,16 @@ const UsersPanel = () => {
       }
     },
     {
-      title: 'Payment Status',
-      key: 'paymentStatus',
-      render: (_, record) => {
-        const userPayments = payments.filter(payment => payment.user === record._id);
-        const userBookings = bookings.filter(booking => booking.user === record._id);
-        
-        if (userPayments.length === 0) {
-          return <Tag color="orange">No Payments</Tag>;
-        }
-        
-        const latestPayment = userPayments.sort((a, b) => 
-          new Date(b.createdAt) - new Date(a.createdAt)
-        )[0];
-        
-        const activeBooking = userBookings.find(booking => booking.status === 'Active');
-        
-        if (!activeBooking) {
-          return <Tag color="orange">No Active Booking</Tag>;
-        }
-        
-        return (
-          <Space>
-            <Badge 
-              status={latestPayment.status === 'Success' ? 'success' : 'error'} 
-              text={latestPayment.status}
-            />
-            <Button 
-              type="link" 
-              size="small" 
-              onClick={() => handleViewPayments(record._id)}
-            >
-              Details
-            </Button>
-          </Space>
-        );
-      },
-    },
-    {
       title: 'Actions',
       key: 'actions',
       render: (_, record) => (
         <Space>
-          <Tooltip title="View Payments">
-            <Button 
-              type="default" 
-              icon={<DollarOutlined />} 
-              size="small"
-              onClick={() => handleViewPayments(record._id)}
-            />
-          </Tooltip>
           <Tooltip title="Edit User">
             <Button 
               type="default" 
               icon={<EditOutlined />} 
               size="small"
               onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Delete User">
-            <Button 
-              danger
-              icon={<DeleteOutlined />} 
-              size="small"
-              onClick={() => handleDelete(record._id)}
             />
           </Tooltip>
         </Space>
@@ -477,41 +403,27 @@ const UsersPanel = () => {
       <Table 
         dataSource={users}
         columns={columns}
-        rowKey={record => record._id || `temp-${Date.now()}-${Math.random()}`}
+        rowKey="_id"
         loading={tableLoading}
-        pagination={{ 
-          defaultPageSize: 10,
-          showSizeChanger: true,
-          pageSizeOptions: ['5', '10', '20', '50']
-        }}
       />
 
       {/* User Form Modal */}
       <Modal
-        title={isEditing ? "Edit User" : "Create New User"}
+        title={isEditing ? 'Edit User' : 'Add User'}
         visible={modalVisible}
+        onOk={handleSaveUser}
         onCancel={handleModalClose}
-        footer={[
-          <Button key="cancel" onClick={handleModalClose}>
-            Cancel
-          </Button>,
-          <Button key="submit" type="primary" loading={loading} onClick={handleSaveUser}>
-            Save
-          </Button>
-        ]}
+        confirmLoading={loading}
       >
-        <Form
-          form={form}
-          layout="vertical"
-        >
+        <Form form={form} layout="vertical">
           <Form.Item
             name="name"
             label="Name"
-            rules={[{ required: true, message: 'Please enter user name' }]}
+            rules={[{ required: true, message: 'Please enter name' }]}
           >
-            <Input placeholder="Enter user name" />
+            <Input />
           </Form.Item>
-          
+
           <Form.Item
             name="email"
             label="Email"
@@ -520,30 +432,29 @@ const UsersPanel = () => {
               { type: 'email', message: 'Please enter a valid email' }
             ]}
           >
-            <Input placeholder="Enter email address" />
+            <Input />
           </Form.Item>
-          
-          <Form.Item
-            name="role"
-            label="Role"
-            rules={[{ required: true, message: 'Please select role' }]}
-          >
-            <Select placeholder="Select role">
-              <Option value="Member">Member</Option>
-              <Option value="Admin">Admin</Option>
-              <Option value="Trainer">Trainer</Option>
-            </Select>
-          </Form.Item>
-          
+
           {!isEditing && (
             <Form.Item
               name="password"
               label="Password"
               rules={[{ required: true, message: 'Please enter password' }]}
             >
-              <Input.Password placeholder="Enter password" />
+              <Input.Password />
             </Form.Item>
           )}
+
+          <Form.Item
+            name="role"
+            label="Role"
+            rules={[{ required: true, message: 'Please select role' }]}
+          >
+            <Select>
+              <Option value="Admin">Admin</Option>
+              <Option value="Member">Member</Option>
+            </Select>
+          </Form.Item>
         </Form>
       </Modal>
 

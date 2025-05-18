@@ -1,45 +1,54 @@
 // controllers/trainerAdminController.js
 const Trainer = require("../models/TrainerModel");
 
+// Get all trainers (including inactive) - admin only
+exports.getAllTrainers = async (req, res) => {
+  try {
+    const trainers = await Trainer.find();
+    res.status(200).json(trainers);
+  } catch (error) {
+    console.error("Error fetching all trainers:", error);
+    res.status(500).json({ message: "Error fetching trainers", error: error.message });
+  }
+};
+
 // Add a new trainer (admin only)
 exports.addTrainer = async (req, res) => {
   try {
     const { 
-      name, 
-      specialization, 
-      image, 
-      experience, 
-      price, 
-      bio, 
-      description, 
-      qualifications, 
-      availability 
+      name,
+      email,
+      phone,
+      specialization,
+      bio,
+      active,
+      availability
     } = req.body;
 
     // Validate required fields
-    if (!name || !specialization || !experience || !price || !bio || !description) {
-      return res.status(400).json({ message: "Please provide all required trainer information" });
+    if (!name || !email) {
+      return res.status(400).json({ message: "Name and email are required" });
     }
 
     // Create new trainer
     const newTrainer = new Trainer({
       name,
-      specialization,
-      image: image || "/api/placeholder/300/300",
-      experience,
-      price,
-      bio,
-      description,
-      qualifications: qualifications || [],
-      availability: availability || []
+      email,
+      phone: phone || '',
+      specialization: specialization || '',
+      bio: bio || '',
+      isActive: active !== false,
+      availability: availability || [],
+      // Set default values for required fields in model
+      experience: '0 years',
+      price: '0',
+      description: bio || '',
+      image: "/api/placeholder/300/300"
     });
 
     await newTrainer.save();
 
-    res.status(201).json({
-      message: "Trainer added successfully",
-      trainer: newTrainer
-    });
+    res.status(201).json(newTrainer);
   } catch (error) {
     console.error("Error adding trainer:", error);
     res.status(500).json({ message: "Error adding trainer", error: error.message });
@@ -50,7 +59,15 @@ exports.addTrainer = async (req, res) => {
 exports.updateTrainer = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    const {
+      name,
+      email,
+      phone,
+      specialization,
+      bio,
+      active,
+      availability
+    } = req.body;
 
     const trainer = await Trainer.findById(id);
     if (!trainer) {
@@ -58,16 +75,18 @@ exports.updateTrainer = async (req, res) => {
     }
 
     // Update trainer data
-    const updatedTrainer = await Trainer.findByIdAndUpdate(
-      id,
-      { $set: updateData },
-      { new: true }
-    );
+    trainer.name = name || trainer.name;
+    trainer.email = email || trainer.email;
+    trainer.phone = phone || trainer.phone;
+    trainer.specialization = specialization || trainer.specialization;
+    trainer.bio = bio || trainer.bio;
+    trainer.isActive = active !== false;
+    if (availability) {
+      trainer.availability = availability;
+    }
 
-    res.status(200).json({
-      message: "Trainer updated successfully",
-      trainer: updatedTrainer
-    });
+    await trainer.save();
+    res.status(200).json(trainer);
   } catch (error) {
     console.error("Error updating trainer:", error);
     res.status(500).json({ message: "Error updating trainer", error: error.message });
@@ -84,9 +103,8 @@ exports.deleteTrainer = async (req, res) => {
       return res.status(404).json({ message: "Trainer not found" });
     }
 
-    // Soft delete (mark as inactive) instead of removing from database
-    trainer.isActive = false;
-    await trainer.save();
+    // Actually delete the trainer instead of soft delete
+    await Trainer.findByIdAndDelete(id);
 
     res.status(200).json({ message: "Trainer deleted successfully" });
   } catch (error) {
@@ -95,14 +113,14 @@ exports.deleteTrainer = async (req, res) => {
   }
 };
 
-// Add availability time slots
+// Add/Update availability time slots
 exports.addAvailability = async (req, res) => {
   try {
     const { id } = req.params;
-    const { date, times } = req.body;
+    const { availability } = req.body;
 
-    if (!date || !times || !Array.isArray(times) || times.length === 0) {
-      return res.status(400).json({ message: "Please provide valid date and times" });
+    if (!availability || !Array.isArray(availability)) {
+      return res.status(400).json({ message: "Please provide valid availability array" });
     }
 
     const trainer = await Trainer.findById(id);
@@ -110,38 +128,12 @@ exports.addAvailability = async (req, res) => {
       return res.status(404).json({ message: "Trainer not found" });
     }
 
-    // Check if date already exists in availability
-    const existingDateIndex = trainer.availability.findIndex(a => a.date === date);
-
-    if (existingDateIndex >= 0) {
-      // Add times to existing date (avoiding duplicates)
-      const existingTimes = new Set(trainer.availability[existingDateIndex].times);
-      times.forEach(time => existingTimes.add(time));
-      trainer.availability[existingDateIndex].times = Array.from(existingTimes);
-    } else {
-      // Add new date with times
-      trainer.availability.push({ date, times });
-    }
-
+    trainer.availability = availability;
     await trainer.save();
 
-    res.status(200).json({
-      message: "Availability updated successfully",
-      availability: trainer.availability
-    });
+    res.status(200).json(trainer);
   } catch (error) {
     console.error("Error updating availability:", error);
     res.status(500).json({ message: "Error updating availability", error: error.message });
-  }
-};
-
-// Get all trainers (including inactive) - admin only
-exports.getAllTrainers = async (req, res) => {
-  try {
-    const trainers = await Trainer.find();
-    res.status(200).json(trainers);
-  } catch (error) {
-    console.error("Error fetching all trainers:", error);
-    res.status(500).json({ message: "Error fetching trainers", error: error.message });
   }
 };
