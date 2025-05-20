@@ -9,7 +9,7 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const isActive = (path) => {
-    return location.pathname === path ? "text-blue-600" : "text-gray-700 hover:text-blue-600";
+    return location.pathname === path ? "text-indigo-600 font-medium" : "text-slate-700 hover:text-indigo-600 transition-colors duration-200";
   };
 
   const toggleMenu = () => {
@@ -38,7 +38,7 @@ const Navbar = () => {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center">
-              <span className="ml-2 text-xl font-bold text-orange-600">RBL Fitness</span>
+              <span className="ml-2 text-xl font-bold text-rose-500 tracking-tight">RBL Fitness</span>
             </Link>
           </div>
           
@@ -46,14 +46,17 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-8">
             <Link to="/" className={`font-medium ${isActive('/')}`}>Home</Link>
             <Link to="/membership" className={`font-medium ${isActive('/membership')}`}>Membership</Link>
-            <Link to="/schedule" className={`font-medium ${isActive('/schedule')}`}>Schedule</Link>
+            
+            {currentUser && (
+              <Link to="/trainers" className={`font-medium ${isActive('/trainers')}`}>Trainers</Link>
+            )}
             <Link to="/about" className={`font-medium ${isActive('/about')}`}>About Us</Link>
             <Link to="/contact" className={`font-medium ${isActive('/contact')}`}>Contact</Link>
             
             {currentUser ? (
               <div className="relative flex items-center space-x-4">
                 <Link to="/dashboard" className="flex items-center justify-center">
-                  <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center hover:bg-indigo-600 transition-colors">
                     {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
                   </div>
                 </Link>
@@ -124,6 +127,15 @@ const Navbar = () => {
             >
               Schedule
             </Link>
+            {currentUser && (
+              <Link 
+                to="/trainers" 
+                className={`px-3 py-2 rounded-md text-base font-medium ${isActive('/trainers')}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Trainers
+              </Link>
+            )}
             <Link 
               to="/about" 
               className={`px-3 py-2 rounded-md text-base font-medium ${isActive('/about')}`}
@@ -146,7 +158,7 @@ const Navbar = () => {
                   className="flex items-center space-x-2 px-3 py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center">
                     {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
                   </div>
                   <span>My Profile</span>

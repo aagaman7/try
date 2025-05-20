@@ -9,6 +9,7 @@ import MembershipPage from "./pages/MembershipPage";
 import BookingPage from "./pages/BookingPage";
 import UserDashboard from "./pages/UserDashboard";
 import UserLayout from "./pages/UserLayout";
+import Navbar from "./components/common/Navbar";
 
 import { AuthProvider } from "./context/AuthContext";
 import { Elements } from "@stripe/react-stripe-js";
@@ -22,6 +23,8 @@ import ServicesPanel from "./pages/admin/ServicesPanel";
 import DiscountPanel from "./pages/admin/DiscountPanel";
 import GymAdminPanel from "./pages/admin/GymAdminPanel";
 import TrainerPanel from "./pages/admin/TrainerPanel";
+import Trainers from './pages/Trainers';
+import TrainerDetailPage from './pages/TrainerDetailPage';
 
 // Load Stripe with a fallback
 const stripePromise = loadStripe(
@@ -33,31 +36,36 @@ function App() {
     <AuthProvider>
       <Router>
         <Elements stripe={stripePromise}>
-          <Routes>
-            {/* Public routes with UserLayout */}
-            <Route element={<UserLayout />}>
-              <Route path="/" element={<Home />} />
-              <Route path="/membership" element={<MembershipPage />} />
-              <Route path="/booking/:packageId" element={<BookingPage />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              {/* <Route path="/schedule" element={<TrainerBookingPage />} /> */}
-              <Route path="/dashboard" element={<UserDashboard />} />
-            </Route>
+          <div className="min-h-screen bg-gray-50">
+            <Navbar />
+            <Routes>
+              {/* Public routes with UserLayout */}
+              <Route element={<UserLayout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/membership" element={<MembershipPage />} />
+                <Route path="/booking/:packageId" element={<BookingPage />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                {/* <Route path="/schedule" element={<TrainerBookingPage />} /> */}
+                <Route path="/dashboard" element={<UserDashboard />} />
+                <Route path="/trainers" element={<Trainers />} />
+                <Route path="/trainers/:id" element={<TrainerDetailPage />} />
+              </Route>
 
-            {/* Admin routes */}
-            <Route path="/admin" element={<GymAdminPanel />}>
-              <Route index element={<Dashboard />} />
-              <Route path="users" element={<UsersPanel />} />
-              <Route path="bookings" element={<BookingsPanel />} />
-              <Route path="packages" element={<PackagesPanel />} />
-              <Route path="services" element={<ServicesPanel />} />
-              <Route path="discounts" element={<DiscountPanel />} />
-              <Route path="trainers" element={<TrainerPanel />} />
-            </Route>
-          </Routes>
+              {/* Admin routes */}
+              <Route path="/admin" element={<GymAdminPanel />}>
+                <Route index element={<Dashboard />} />
+                <Route path="users" element={<UsersPanel />} />
+                <Route path="bookings" element={<BookingsPanel />} />
+                <Route path="packages" element={<PackagesPanel />} />
+                <Route path="services" element={<ServicesPanel />} />
+                <Route path="discounts" element={<DiscountPanel />} />
+                <Route path="trainers" element={<TrainerPanel />} />
+              </Route>
+            </Routes>
+          </div>
         </Elements>
       </Router>
     </AuthProvider>

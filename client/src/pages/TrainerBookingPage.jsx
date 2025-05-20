@@ -91,20 +91,21 @@ const TrainerBookingPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Our Personal Trainers</h1>
-      
-      <p className="text-gray-600 mb-8">
-        Book a session with one of our experienced trainers to achieve your fitness goals faster.
-        Our trainers specialize in various areas and can help you with customized workout plans.
-      </p>
+    <div className="container mx-auto px-4 py-16">
+      <div className="max-w-4xl mx-auto mb-12 text-center">
+        <h1 className="text-4xl font-bold text-slate-800 mb-4 tracking-tight">Our Personal Trainers</h1>
+        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+          Book a session with one of our experienced trainers to achieve your fitness goals faster.
+          Our trainers specialize in various areas and can help you with customized workout plans.
+        </p>
+      </div>
       
       {trainers.length === 0 ? (
-        <div className="text-center py-10">
-          <p className="text-gray-500 text-xl">No trainers available at the moment.</p>
+        <div className="text-center py-16">
+          <p className="text-slate-500 text-xl">No trainers available at the moment.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {trainers.map((trainer) => (
             <TrainerCard 
               key={trainer._id}

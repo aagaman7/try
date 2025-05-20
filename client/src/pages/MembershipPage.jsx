@@ -96,40 +96,40 @@ const MembershipPage = () => {
   }
 
   return (
-    <div className="bg-gray-100 min-h-screen">
-      <div className="relative bg-blue-600 py-8">
+    <div className="bg-slate-50 min-h-screen">
+      <div className="relative bg-gradient-to-r from-indigo-600 to-indigo-800 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-white text-center">
+          <h1 className="text-4xl font-bold text-white text-center tracking-tight">
             Choose Your Membership Plan
           </h1>
-          <p className="mt-2 text-center text-blue-100">
+          <p className="mt-4 text-center text-indigo-100 text-lg">
             Select the perfect package that fits your fitness goals
           </p>
         </div>
       </div>
 
       {/* Packages Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid gap-8 md:grid-cols-3">
           {packages.filter(pkg => pkg.active).map((pkg) => (
             <div 
               key={pkg._id} 
-              className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-105"
+              className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
             >
-              <div className="bg-blue-600 text-white py-4 px-6">
+              <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-6 px-6">
                 <h3 className="text-xl font-bold">{pkg.name}</h3>
               </div>
               <div className="p-6">
-                <p className="text-3xl font-bold text-gray-800">${pkg.basePrice}<span className="text-sm text-gray-500">/month</span></p>
-                <p className="mt-4 text-gray-600 mb-6">{pkg.description}</p>
+                <p className="text-3xl font-bold text-slate-800">${pkg.basePrice}<span className="text-sm text-slate-500">/month</span></p>
+                <p className="mt-4 text-slate-600 mb-6">{pkg.description}</p>
                 
                 {pkg.includedServices && pkg.includedServices.length > 0 && (
                   <div className="mb-6">
-                    <p className="font-semibold text-gray-700 mb-2">Included Services:</p>
-                    <ul className="text-gray-600">
+                    <p className="font-semibold text-slate-700 mb-2">Included Services:</p>
+                    <ul className="text-slate-600 space-y-2">
                       {pkg.includedServices.map(service => (
-                        <li key={service._id} className="flex items-center mb-1">
-                          <svg className="h-4 w-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <li key={service._id} className="flex items-center">
+                          <svg className="h-5 w-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                           </svg>
                           {service.name}
@@ -141,7 +141,7 @@ const MembershipPage = () => {
                 
                 <button
                   onClick={() => handlePackageSelect(pkg._id)}
-                  className="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition duration-300"
+                  className="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition-all duration-300 hover:shadow-lg"
                 >
                   Select Plan
                 </button>
@@ -153,18 +153,18 @@ const MembershipPage = () => {
 
       {/* Services Section */}
       {services.length > 0 && (
-        <div className="bg-gray-50 py-12">
+        <div className="bg-white py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-8 text-center">
+            <h2 className="text-3xl font-bold text-slate-800 mb-12 text-center">
               Additional Services
             </h2>
             
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {services.filter(service => service.active).map((service) => (
-                <div key={service._id} className="bg-white p-6 rounded-lg shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-800">{service.name}</h3>
-                  <p className="mt-2 text-gray-600">{service.description}</p>
-                  <p className="mt-4 text-blue-600 font-bold">${service.price}</p>
+                <div key={service._id} className="bg-slate-50 p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
+                  <h3 className="text-lg font-semibold text-slate-800">{service.name}</h3>
+                  <p className="mt-2 text-slate-600">{service.description}</p>
+                  <p className="mt-4 text-indigo-600 font-bold">${service.price}</p>
                 </div>
               ))}
             </div>

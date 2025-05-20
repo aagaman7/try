@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import apiService from '../services/apiService';
 import { useAuth } from '../context/AuthContext';
 import { format } from 'date-fns';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import TrainerBookings from '../components/TrainerBookings';
 
 const UserDashboard = () => {
   const { currentUser } = useAuth();
@@ -31,6 +32,18 @@ const UserDashboard = () => {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [clientSecret, setClientSecret] = useState('');
   
+  const [freezeStatus, setFreezeStatus] = useState({
+    status: 'Active',
+    freezeStartDate: null,
+    currentFreezeDuration: 0,
+    remainingFreezeDays: 90,
+    freezeHistory: []
+  });
+  
+  const [trainerBookings, setTrainerBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
+  const [bookingsError, setBookingsError] = useState(null);
+  
   useEffect(() => {
     if (!currentUser) {
       navigate('/login');
@@ -38,6 +51,8 @@ const UserDashboard = () => {
     }
     
     fetchDashboardData();
+    fetchFreezeStatus();
+    fetchTrainerBookings();
   }, [currentUser, navigate]);
   
   const fetchDashboardData = async () => {
@@ -50,6 +65,28 @@ const UserDashboard = () => {
       setError(err.message || 'Failed to load dashboard information');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const fetchFreezeStatus = async () => {
+    try {
+      const data = await apiService.get('dashboard/freeze-status');
+      setFreezeStatus(data);
+    } catch (err) {
+      setError(err.message || 'Failed to load freeze status');
+    }
+  };
+  
+  const fetchTrainerBookings = async () => {
+    try {
+      setLoadingBookings(true);
+      const data = await apiService.get('trainers/bookings/user');
+      setTrainerBookings(data);
+      setBookingsError(null);
+    } catch (err) {
+      setBookingsError(err.message || 'Failed to load trainer bookings');
+    } finally {
+      setLoadingBookings(false);
     }
   };
   
@@ -76,26 +113,36 @@ const UserDashboard = () => {
     }
   };
   
-  const handleFreezeMembership = async () => {
+  const handleFreezeToggle = async () => {
     try {
       setProcessingAction(true);
-      const result = await apiService.post('dashboard/freeze', { freezeDays });
-      setActionResult({
-        success: true,
-        message: 'Membership frozen successfully',
-        details: `Membership extended by ${freezeDays} days`
-      });
-      // Refresh dashboard data
-      fetchDashboardData();
+      
+      if (freezeStatus.status === 'Active') {
+        const result = await apiService.post('dashboard/freeze');
+        setActionResult({
+          success: true,
+          message: 'Membership frozen successfully',
+          details: 'Your membership is now frozen. You can unfreeze it at any time.'
+        });
+      } else {
+        const result = await apiService.post('dashboard/unfreeze');
+        setActionResult({
+          success: true,
+          message: 'Membership unfrozen successfully',
+          details: `Your membership was frozen for ${result.freezeDuration} days. Your end date has been extended accordingly.`
+        });
+      }
+      
+      // Refresh both dashboard and freeze status data
+      await Promise.all([fetchDashboardData(), fetchFreezeStatus()]);
     } catch (err) {
       setActionResult({
         success: false,
-        message: 'Failed to freeze membership',
+        message: 'Failed to toggle membership freeze status',
         details: err.message
       });
     } finally {
       setProcessingAction(false);
-      setShowFreezeModal(false);
     }
   };
   
@@ -155,6 +202,30 @@ const UserDashboard = () => {
       setPaymentError(err.message);
     } finally {
       setPaymentProcessing(false);
+      setProcessingAction(false);
+    }
+  };
+  
+  const handleCancelBooking = async (bookingId) => {
+    try {
+      setProcessingAction(true);
+      await apiService.put(`trainers/bookings/${bookingId}/cancel`);
+      
+      setActionResult({
+        success: true,
+        message: 'Booking cancelled successfully',
+        details: 'Your refund will be processed within 5-7 business days.'
+      });
+
+      // Refresh bookings
+      fetchTrainerBookings();
+    } catch (err) {
+      setActionResult({
+        success: false,
+        message: 'Failed to cancel booking',
+        details: err.message
+      });
+    } finally {
       setProcessingAction(false);
     }
   };
@@ -229,42 +300,21 @@ const UserDashboard = () => {
   
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-4xl mx-auto">
-        
-        {/* Notification */}
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Notification Section */}
         {actionResult && (
-          <div className={`mb-6 p-4 rounded-lg ${actionResult.success ? 'bg-green-100 border border-green-400' : 'bg-red-100 border border-red-400'}`}>
+          <div className={`p-4 rounded-lg ${actionResult.success ? 'bg-green-100 border border-green-400' : 'bg-red-100 border border-red-400'}`}>
             <div className="flex justify-between">
-              <h3 className="font-bold">{actionResult.message}</h3>
+              <h3 className={`font-bold ${actionResult.success ? 'text-green-800' : 'text-red-800'}`}>
+                {actionResult.message}
+              </h3>
               <button onClick={dismissNotification} className="text-gray-600 hover:text-gray-800">×</button>
             </div>
             <p className="mt-1">{actionResult.details}</p>
           </div>
         )}
-        
-        {/* Payment Success */}
-        {paymentSuccess && (
-          <div className="mb-6 p-4 rounded-lg bg-green-100 border border-green-400">
-            <div className="flex justify-between">
-              <h3 className="font-bold">Payment Successful!</h3>
-              <button onClick={dismissNotification} className="text-gray-600 hover:text-gray-800">×</button>
-            </div>
-            <p className="mt-1">Your membership has been extended.</p>
-          </div>
-        )}
-        
-        {/* Payment Error */}
-        {paymentError && (
-          <div className="mb-6 p-4 rounded-lg bg-red-100 border border-red-400">
-            <div className="flex justify-between">
-              <h3 className="font-bold">Payment Failed</h3>
-              <button onClick={dismissNotification} className="text-gray-600 hover:text-gray-800">×</button>
-            </div>
-            <p className="mt-1">{paymentError}</p>
-          </div>
-        )}
-        
-        {/* Main Dashboard */}
+
+        {/* Membership Details Section */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-6 bg-blue-600 text-white">
             <h1 className="text-3xl font-bold">Your Membership Dashboard</h1>
@@ -334,15 +384,26 @@ const UserDashboard = () => {
               <button 
                 onClick={() => setShowExtendModal(true)}
                 className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                disabled={freezeStatus.status === 'Frozen'}
               >
                 Extend Membership
               </button>
               
               <button 
-                onClick={() => setShowFreezeModal(true)}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                onClick={handleFreezeToggle}
+                className={`px-4 py-2 ${
+                  freezeStatus.status === 'Active' 
+                    ? 'bg-blue-500 hover:bg-blue-600' 
+                    : 'bg-yellow-500 hover:bg-yellow-600'
+                } text-white rounded flex items-center gap-2`}
+                disabled={processingAction}
               >
-                Freeze Membership
+                <span>
+                  {freezeStatus.status === 'Active' ? 'Freeze Membership' : 'Unfreeze Membership'}
+                </span>
+                {processingAction && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                )}
               </button>
               
               <button 
@@ -352,6 +413,44 @@ const UserDashboard = () => {
                 Cancel Membership
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Trainer Bookings Section */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="p-6 bg-blue-600 text-white">
+            <h2 className="text-2xl font-bold">Your Trainer Sessions</h2>
+            <p className="text-blue-100">
+              Manage your personal training sessions and bookings.
+            </p>
+          </div>
+
+          <div className="p-6">
+            {loadingBookings ? (
+              <div className="flex justify-center items-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+              </div>
+            ) : bookingsError ? (
+              <div className="text-center text-red-500">
+                <p>{bookingsError}</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold">Upcoming Sessions</h3>
+                  <Link
+                    to="/trainers"
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  >
+                    Book New Session
+                  </Link>
+                </div>
+                <TrainerBookings 
+                  bookings={trainerBookings} 
+                  onCancel={handleCancelBooking}
+                />
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -388,48 +487,31 @@ const UserDashboard = () => {
         </div>
       )}
       
-      {/* Freeze Modal */}
-      {showFreezeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4">Freeze Membership</h2>
-            <p className="mb-4">
-              Freezing your membership will extend your end date by the selected number of days.
+      {/* Freeze Status Section */}
+      {freezeStatus.status === 'Frozen' && (
+        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2 text-yellow-800">
+            Membership Status: Frozen
+          </h3>
+          <div className="space-y-2">
+            <p>
+              <span className="font-medium">Freeze Start Date:</span>{' '}
+              {format(new Date(freezeStatus.freezeStartDate), 'MMM dd, yyyy')}
             </p>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Freeze Duration (7-90 days)
-              </label>
-              <input 
-                type="range" 
-                min="7" 
-                max="90" 
-                value={freezeDays} 
-                onChange={(e) => setFreezeDays(parseInt(e.target.value))}
-                className="w-full"
-              />
-              <div className="flex justify-between text-sm text-gray-500">
-                <span>7 days</span>
-                <span>{freezeDays} days</span>
-                <span>90 days</span>
-              </div>
-            </div>
-            <div className="flex justify-end gap-4">
-              <button 
-                onClick={() => setShowFreezeModal(false)}
-                className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
-                disabled={processingAction}
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleFreezeMembership}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                disabled={processingAction}
-              >
-                {processingAction ? 'Processing...' : 'Freeze Membership'}
-              </button>
-            </div>
+            <p>
+              <span className="font-medium">Current Freeze Duration:</span>{' '}
+              {freezeStatus.currentFreezeDuration} days
+            </p>
+            <p>
+              <span className="font-medium">Remaining Freeze Days:</span>{' '}
+              {freezeStatus.remainingFreezeDays} days
+            </p>
+            {freezeStatus.remainingFreezeDays <= 14 && (
+              <p className="text-red-600">
+                Warning: You are approaching the maximum freeze duration of 90 days.
+                Please unfreeze your membership to avoid any issues.
+              </p>
+            )}
           </div>
         </div>
       )}

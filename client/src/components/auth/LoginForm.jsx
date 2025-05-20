@@ -35,8 +35,11 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-6 bg-white rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold text-center text-orange-600 mb-6">Login to RBL Fitness</h2>
+    <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
+      <h2 className="text-2xl font-bold text-center text-slate-800 mb-8">Welcome Back</h2>
+      <div className="text-center mb-8">
+        <span className="text-rose-500 font-medium text-lg">RBL Fitness</span>
+      </div>
       
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -75,7 +78,7 @@ const LoginForm = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg px-4 py-2 transition-colors disabled:bg-blue-300"
+            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition-colors duration-200 disabled:opacity-50"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
@@ -84,7 +87,7 @@ const LoginForm = () => {
         <div className="mt-4 text-center">
           <p className="text-gray-600">
             Don't have an account?{" "}
-            <Link to="/register" className="text-blue-600 hover:underline">
+            <Link to="/register" className="text-indigo-600 hover:text-indigo-700 transition-colors duration-200">
               Register here
             </Link>
           </p>

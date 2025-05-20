@@ -137,33 +137,115 @@ exports.cancelMembership = async (req, res) => {
 
 exports.freezeMembership = async (req, res) => {
   try {
-    const { freezeDays } = req.body;
-    
-    // Validate freeze duration
-    if (freezeDays < 7 || freezeDays > 90) {
-      return res.status(400).json({ message: "Freeze duration must be between 7 and 90 days" });
-    }
-
     const currentBooking = await Booking.findById(req.user.currentMembership);
 
     if (!currentBooking) {
       return res.status(404).json({ message: "No active membership found" });
     }
 
-    // Extend membership end date
-    const newEndDate = new Date(currentBooking.endDate.getTime() + (freezeDays * 24 * 60 * 60 * 1000));
-    
-    currentBooking.endDate = newEndDate;
+    // Check if membership is already frozen
+    if (currentBooking.status === 'Frozen') {
+      return res.status(400).json({ message: "Membership is already frozen" });
+    }
+
+    // Update booking status and set freeze start date
+    currentBooking.status = 'Frozen';
+    currentBooking.freezeStartDate = new Date();
     await currentBooking.save();
 
     res.json({ 
-      message: "Membership frozen successfully", 
-      originalEndDate: currentBooking.endDate,
-      newEndDate: newEndDate,
-      freezeDays 
+      message: "Membership frozen successfully",
+      freezeStartDate: currentBooking.freezeStartDate,
+      status: currentBooking.status
     });
   } catch (error) {
     res.status(500).json({ message: "Error freezing membership", error: error.message });
+  }
+};
+
+exports.unfreezeMembership = async (req, res) => {
+  try {
+    const currentBooking = await Booking.findById(req.user.currentMembership);
+
+    if (!currentBooking) {
+      return res.status(404).json({ message: "No active membership found" });
+    }
+
+    // Check if membership is actually frozen
+    if (currentBooking.status !== 'Frozen') {
+      return res.status(400).json({ message: "Membership is not frozen" });
+    }
+
+    // Calculate freeze duration
+    const freezeDuration = Math.floor(
+      (new Date() - currentBooking.freezeStartDate) / (1000 * 60 * 60 * 24)
+    );
+
+    // Check if freeze duration exceeds maximum
+    if (freezeDuration > 90) {
+      // If exceeded, only extend by 90 days
+      currentBooking.endDate = new Date(
+        currentBooking.endDate.getTime() + (90 * 24 * 60 * 60 * 1000)
+      );
+    } else {
+      // Extend by actual freeze duration
+      currentBooking.endDate = new Date(
+        currentBooking.endDate.getTime() + (freezeDuration * 24 * 60 * 60 * 1000)
+      );
+    }
+
+    // Update booking status and clear freeze start date
+    currentBooking.status = 'Active';
+    currentBooking.freezeStartDate = null;
+
+    // Optional: Add to freeze history
+    if (!currentBooking.freezeHistory) {
+      currentBooking.freezeHistory = [];
+    }
+    currentBooking.freezeHistory.push({
+      startDate: currentBooking.freezeStartDate,
+      endDate: new Date(),
+      duration: freezeDuration
+    });
+
+    await currentBooking.save();
+
+    res.json({ 
+      message: "Membership unfrozen successfully",
+      freezeDuration,
+      newEndDate: currentBooking.endDate,
+      status: currentBooking.status
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error unfreezing membership", error: error.message });
+  }
+};
+
+exports.getMembershipFreezeStatus = async (req, res) => {
+  try {
+    const currentBooking = await Booking.findById(req.user.currentMembership);
+
+    if (!currentBooking) {
+      return res.status(404).json({ message: "No active membership found" });
+    }
+
+    const response = {
+      status: currentBooking.status || 'Active',
+      freezeStartDate: currentBooking.freezeStartDate,
+      freezeHistory: currentBooking.freezeHistory || []
+    };
+
+    if (currentBooking.status === 'Frozen') {
+      const currentFreezeDuration = Math.floor(
+        (new Date() - currentBooking.freezeStartDate) / (1000 * 60 * 60 * 24)
+      );
+      response.currentFreezeDuration = currentFreezeDuration;
+      response.remainingFreezeDays = Math.max(0, 90 - currentFreezeDuration);
+    }
+
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({ message: "Error getting freeze status", error: error.message });
   }
 };
 

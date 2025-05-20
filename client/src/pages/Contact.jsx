@@ -25,24 +25,47 @@ const Contact = () => {
   ];
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h3" component="h1" align="center" gutterBottom>
-        Contact Us
-      </Typography>
-      
-      <Typography variant="subtitle1" align="center" sx={{ mb: 4 }}>
-        We're here to help! Reach out with any questions about memberships, classes, or facilities.
-      </Typography>
+    <Container maxWidth="lg" sx={{ py: 8 }}>
+      <Box textAlign="center" mb={8}>
+        <Typography variant="h3" component="h1" gutterBottom sx={{ 
+          fontWeight: 700,
+          color: 'text.primary',
+          letterSpacing: '-0.02em',
+          mb: 2
+        }}>
+          Contact Us
+        </Typography>
+        
+        <Typography variant="subtitle1" sx={{ 
+          color: 'text.secondary',
+          maxWidth: 'sm',
+          mx: 'auto',
+          fontSize: '1.125rem'
+        }}>
+          We're here to help! Reach out with any questions about memberships, classes, or facilities.
+        </Typography>
+      </Box>
       
       <Grid container spacing={4}>
         {/* Left side - Contact information and form */}
         <Grid item xs={12} md={6}>
-          <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
-            <Typography variant="h5" component="h2" gutterBottom>
+          <Paper elevation={0} sx={{ 
+            p: 4, 
+            mb: 4,
+            borderRadius: 3,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            border: '1px solid',
+            borderColor: 'divider'
+          }}>
+            <Typography variant="h5" component="h2" gutterBottom sx={{
+              fontWeight: 600,
+              color: 'text.primary',
+              mb: 3
+            }}>
               Send Us a Message
             </Typography>
             
-            <Typography variant="body1" paragraph>
+            <Typography variant="body1" paragraph sx={{ color: 'text.secondary' }}>
               Fill out the form below and our team will get back to you within 24 hours.
             </Typography>
             
@@ -52,36 +75,49 @@ const Contact = () => {
         
         {/* Right side - Location information and map */}
         <Grid item xs={12} md={6}>
-          <Paper elevation={3} sx={{ p: 3 }}>
-            <Typography variant="h5" component="h2" gutterBottom>
+          <Paper elevation={0} sx={{ 
+            p: 4,
+            borderRadius: 3,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            border: '1px solid',
+            borderColor: 'divider'
+          }}>
+            <Typography variant="h5" component="h2" gutterBottom sx={{
+              fontWeight: 600,
+              color: 'text.primary',
+              mb: 3
+            }}>
               Our Locations
             </Typography>
             
             {locations.map((location) => (
-              <Box key={location.id} sx={{ mb: 3 }}>
-                <Typography variant="h6" component="h3" gutterBottom>
+              <Box key={location.id} sx={{ mb: 4 }}>
+                <Typography variant="h6" component="h3" gutterBottom sx={{
+                  fontWeight: 600,
+                  color: 'text.primary'
+                }}>
                   {location.name}
                 </Typography>
                 
-                <Typography variant="body1" paragraph>
+                <Typography variant="body1" paragraph sx={{ color: 'text.secondary' }}>
                   <strong>Address:</strong> {location.address}
                 </Typography>
                 
-                <Typography variant="body1" paragraph>
+                <Typography variant="body1" paragraph sx={{ color: 'text.secondary' }}>
                   <strong>Phone:</strong> {location.phone}
                 </Typography>
                 
-                <Typography variant="body1" paragraph>
+                <Typography variant="body1" paragraph sx={{ color: 'text.secondary' }}>
                   <strong>Email:</strong> {location.email}
                 </Typography>
                 
-                <Typography variant="body1" paragraph>
+                <Typography variant="body1" paragraph sx={{ color: 'text.secondary' }}>
                   <strong>Hours:</strong> {location.hours}
                 </Typography>
               </Box>
             ))}
             
-            <Box sx={{ mt: 3, height: 300 }}>
+            <Box sx={{ mt: 4, height: 300, borderRadius: 3, overflow: 'hidden' }}>
               <iframe
                 title="Gym Location Map"
                 src={locations[0].mapLink}

@@ -182,33 +182,33 @@ const BookingForm = () => {
       {error && <ToastMessage message={error} type="error" onClose={closeToast} />}
       
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-        <div className="bg-blue-600 p-6 text-white">
-          <h2 className="text-3xl font-bold flex items-center">
+        <div className="bg-gradient-to-r from-indigo-600 to-indigo-800 p-8 text-white">
+          <h2 className="text-3xl font-bold flex items-center tracking-tight">
             <ClipboardList className="mr-3" size={28} />
             Book Your Fitness Membership
           </h2>
-          <p className="mt-2 opacity-90">Join RBL Fitness and start your fitness journey today</p>
+          <p className="mt-2 text-indigo-100 text-lg">Join RBL Fitness and start your fitness journey today</p>
         </div>
 
-        <form onSubmit={handleNextStep} className="p-6">
-          <div className="flex justify-between mb-6">
-            <div className={`flex-1 p-2 text-center ${step === 1 ? 'border-b-2 border-blue-500 text-blue-600 font-semibold' : 'text-gray-500'}`}>
+        <form onSubmit={handleNextStep} className="p-8">
+          <div className="flex justify-between mb-8">
+            <div className={`flex-1 p-2 text-center ${step === 1 ? 'border-b-2 border-indigo-500 text-indigo-600 font-semibold' : 'text-slate-500'}`}>
               1. Select Package
             </div>
-            <div className={`flex-1 p-2 text-center ${step === 2 ? 'border-b-2 border-blue-500 text-blue-600 font-semibold' : 'text-gray-500'}`}>
+            <div className={`flex-1 p-2 text-center ${step === 2 ? 'border-b-2 border-indigo-500 text-indigo-600 font-semibold' : 'text-slate-500'}`}>
               2. Payment
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-8">
             <div>
-              <label className="block text-gray-700 font-medium mb-2 flex items-center">
+              <label className="block text-slate-700 font-medium mb-3 flex items-center">
                 <Dumbbell className="mr-2" size={20} />
                 Choose Your Package
               </label>
-              <div className="grid gap-3">
+              <div className="grid gap-4">
                 {displayPackages.map(pkg => (
-                  <label key={pkg._id} className={`flex items-center p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${formData.packageId === pkg._id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+                  <label key={pkg._id} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all duration-300 hover:shadow-md ${formData.packageId === pkg._id ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200'}`}>
                     <input
                       type="radio"
                       name="packageId"
@@ -220,9 +220,9 @@ const BookingForm = () => {
                     <div className="flex-1">
                       <div className="flex items-center">
                         {renderCardIcon(pkg.name)}
-                        <span className="ml-2 font-medium">{pkg.name}</span>
+                        <span className="ml-2 font-medium text-slate-800">{pkg.name}</span>
                       </div>
-                      <div className="text-blue-600 font-semibold mt-1">${pkg.basePrice}/month</div>
+                      <div className="text-indigo-600 font-semibold mt-1">${pkg.basePrice}/month</div>
                     </div>
                   </label>
                 ))}
@@ -230,12 +230,12 @@ const BookingForm = () => {
             </div>
 
             <div>
-              <label className="block text-gray-700 font-medium mb-2 flex items-center">
+              <label className="block text-slate-700 font-medium mb-3 flex items-center">
                 <Calendar className="mr-2" size={20} />
                 Choose Time Slot
               </label>
-              <div className="relative">
-                <Clock className="absolute top-3 left-3 text-gray-400" size={18} />
+              <div className="relative mb-6">
+                <Clock className="absolute top-3 left-3 text-slate-400" size={18} />
                 <input 
                   type="text" 
                   name="timeSlot" 
@@ -243,11 +243,11 @@ const BookingForm = () => {
                   onChange={handleChange} 
                   placeholder="e.g. Weekdays 6-8 PM" 
                   required 
-                  className="w-full pl-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
 
-              <label className="block text-gray-700 font-medium mt-4 mb-2 flex items-center">
+              <label className="block text-slate-700 font-medium mb-3 flex items-center">
                 <Calendar className="mr-2" size={20} />
                 Workout Days Per Week
               </label>
@@ -256,7 +256,7 @@ const BookingForm = () => {
                 value={formData.workoutDaysPerWeek} 
                 onChange={handleChange} 
                 required 
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mb-6"
               >
                 <option value="">Select days per week</option>
                 <option value="1">1 day/week</option>
@@ -268,7 +268,7 @@ const BookingForm = () => {
                 <option value="7">7 days/week</option>
               </select>
 
-              <label className="block text-gray-700 font-medium mt-4 mb-2 flex items-center">
+              <label className="block text-slate-700 font-medium mb-3 flex items-center">
                 <Goal className="mr-2" size={20} />
                 Your Fitness Goals
               </label>
@@ -278,62 +278,51 @@ const BookingForm = () => {
                 onChange={handleChange} 
                 placeholder="Tell us about your fitness goals..." 
                 required 
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-24"
+                className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 h-32"
               />
             </div>
           </div>
 
-          <div className="mt-6">
-            <label className="block text-gray-700 font-medium mb-2 flex items-center">
+          <div className="mt-8">
+            <label className="block text-slate-700 font-medium mb-3 flex items-center">
               <CreditCard className="mr-2" size={20} />
               Payment Interval
             </label>
-            <div className="grid grid-cols-3 gap-3">
-              <label className={`p-3 border rounded-lg text-center cursor-pointer ${formData.paymentInterval === 'Monthly' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200'}`}>
-                <input
-                  type="radio"
-                  name="paymentInterval"
-                  value="Monthly"
-                  checked={formData.paymentInterval === 'Monthly'}
-                  onChange={handleChange}
-                  className="sr-only"
-                />
-                Monthly
-              </label>
-              <label className={`p-3 border rounded-lg text-center cursor-pointer ${formData.paymentInterval === '3 Months' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200'}`}>
-                <input
-                  type="radio"
-                  name="paymentInterval"
-                  value="3 Months"
-                  checked={formData.paymentInterval === '3 Months'}
-                  onChange={handleChange}
-                  className="sr-only"
-                />
-                3 Months
-              </label>
-              <label className={`p-3 border rounded-lg text-center cursor-pointer ${formData.paymentInterval === 'Yearly' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200'}`}>
-                <input
-                  type="radio"
-                  name="paymentInterval"
-                  value="Yearly"
-                  checked={formData.paymentInterval === 'Yearly'}
-                  onChange={handleChange}
-                  className="sr-only"
-                />
-                Yearly (Save 15%)
-              </label>
+            <div className="grid grid-cols-3 gap-4">
+              {['Monthly', '3 Months', 'Yearly'].map((interval) => (
+                <label key={interval} className={`p-4 border rounded-xl text-center cursor-pointer transition-all duration-300 ${
+                  formData.paymentInterval === interval 
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-600' 
+                    : 'border-slate-200 hover:border-indigo-300'
+                }`}>
+                  <input
+                    type="radio"
+                    name="paymentInterval"
+                    value={interval}
+                    checked={formData.paymentInterval === interval}
+                    onChange={handleChange}
+                    className="sr-only"
+                  />
+                  {interval}
+                  {interval === 'Yearly' && <span className="block text-sm text-emerald-500 mt-1">Save 15%</span>}
+                </label>
+              ))}
             </div>
           </div>
 
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-3 flex items-center">
+          <div className="mt-8">
+            <h3 className="text-xl font-semibold mb-4 flex items-center text-slate-800">
               <Users className="mr-2" size={20} />
               Additional Services
-              <span className="ml-2 text-sm font-normal text-gray-600">(Select any services you'd like to add)</span>
+              <span className="ml-2 text-sm font-normal text-slate-600">(Select any services you'd like to add)</span>
             </h3>
             <div className="grid md:grid-cols-2 gap-4">
               {displayServices.map(service => (
-                <label key={service._id} className={`flex flex-col p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${formData.customServices.includes(service._id) ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+                <label key={service._id} className={`flex flex-col p-4 border rounded-xl cursor-pointer transition-all duration-300 hover:shadow-md ${
+                  formData.customServices.includes(service._id) 
+                    ? 'border-indigo-500 bg-indigo-50' 
+                    : 'border-slate-200'
+                }`}>
                   <div className="flex items-start">
                     <input
                       type="checkbox"
@@ -344,38 +333,26 @@ const BookingForm = () => {
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-900">{service.name}</span>
-                        <span className="text-blue-600 font-semibold">${service.price}</span>
+                        <span className="font-medium text-slate-800">{service.name}</span>
+                        <span className="text-indigo-600 font-semibold">${service.price}</span>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">{service.description || 'Additional fitness service'}</p>
+                      <p className="text-sm text-slate-600 mt-1">{service.description || 'Additional fitness service'}</p>
                     </div>
                   </div>
                   {formData.customServices.includes(service._id) && (
-                    <div className="mt-2 text-sm text-blue-600">
+                    <div className="mt-2 text-sm text-emerald-500 flex items-center">
                       <CheckCircle className="inline-block mr-1" size={16} /> Added to your package
                     </div>
                   )}
                 </label>
               ))}
             </div>
-            {formData.customServices.length > 0 && (
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <div className="font-medium text-blue-800">
-                  Selected Additional Services: {formData.customServices.length}
-                </div>
-                <div className="text-sm text-blue-600 mt-1">
-                  Total additional cost: ${displayServices
-                    .filter(service => formData.customServices.includes(service._id))
-                    .reduce((total, service) => total + service.price, 0)}
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="mt-8 text-center">
             <button
               type="submit"
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-blue-700 transition-colors shadow-md flex items-center justify-center mx-auto"
+              className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-8 py-4 rounded-xl text-lg font-medium hover:from-indigo-700 hover:to-indigo-800 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center mx-auto"
             >
               <CreditCard className="mr-2" size={20} />
               Proceed to Payment
