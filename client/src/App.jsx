@@ -7,13 +7,17 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import MembershipPage from "./pages/MembershipPage";
 import BookingPage from "./pages/BookingPage";
-import UserDashboard from "./pages/UserDashboard";
+// import UserDashboard from "./pages/UserDashboard";
 import UserLayout from "./pages/UserLayout";
-import Navbar from "./components/common/Navbar";
 
 import { AuthProvider } from "./context/AuthContext";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
+
+// Import trainer components
+import TrainerList from "./components/trainer/TrainerList";
+import TrainerDetail from "./components/trainer/TrainerDetail";
+import UserBookings from "./components/trainer/UserBookings";
 
 import Dashboard from "./pages/admin/Dashboard";
 import UsersPanel from "./pages/admin/UsersPanel";
@@ -23,8 +27,6 @@ import ServicesPanel from "./pages/admin/ServicesPanel";
 import DiscountPanel from "./pages/admin/DiscountPanel";
 import GymAdminPanel from "./pages/admin/GymAdminPanel";
 import TrainerPanel from "./pages/admin/TrainerPanel";
-import Trainers from './pages/Trainers';
-import TrainerDetailPage from './pages/TrainerDetailPage';
 
 // Load Stripe with a fallback
 const stripePromise = loadStripe(
@@ -37,7 +39,6 @@ function App() {
       <Router>
         <Elements stripe={stripePromise}>
           <div className="min-h-screen bg-gray-50">
-            <Navbar />
             <Routes>
               {/* Public routes with UserLayout */}
               <Route element={<UserLayout />}>
@@ -48,10 +49,11 @@ function App() {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                {/* <Route path="/schedule" element={<TrainerBookingPage />} /> */}
-                <Route path="/dashboard" element={<UserDashboard />} />
-                <Route path="/trainers" element={<Trainers />} />
-                <Route path="/trainers/:id" element={<TrainerDetailPage />} />
+                
+                {/* Trainer routes */}
+                <Route path="/trainers" element={<TrainerList />} />
+                <Route path="/trainer/:id" element={<TrainerDetail />} />
+                <Route path="/trainer/bookings" element={<UserBookings />} />
               </Route>
 
               {/* Admin routes */}

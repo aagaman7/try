@@ -1,47 +1,56 @@
-// models/TrainerBookingModel.js
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const TrainerBookingSchema = new mongoose.Schema({
-  user: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', 
-    required: true 
-  },
-  trainer: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Trainer', 
-    required: true 
-  },
-  date: { 
-    type: String, 
-    required: true 
-  },
-  time: { 
-    type: String, 
-    required: true 
-  },
-  notes: { 
-    type: String, 
-    default: "" 
-  },
-  status: { 
-    type: String, 
-    enum: ['pending', 'confirmed', 'completed', 'cancelled'], 
-    default: 'pending' 
-  },
-  totalPrice: {
-    type: Number,
+const trainerBookingSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: true
   },
-  stripePaymentId: {
+  trainer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Trainer',
+    required: true
+  },
+  bookingDate: {
+    type: Date,
+    required: true
+  },
+  startTime: {
     type: String,
+    required: true
+  },
+  endTime: {
+    type: String,
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'confirmed', 'completed', 'cancelled'],
+    default: 'pending'
+  },
+  price: {
+    type: Number,
     required: true
   },
   paymentStatus: {
     type: String,
-    enum: ['pending', 'completed', 'failed', 'refunded'],
+    enum: ['pending', 'completed', 'refunded'],
     default: 'pending'
+  },
+  stripePaymentId: {
+    type: String
+  },
+  cancellationReason: {
+    type: String
+  },
+  cancelledAt: {
+    type: Date
   }
-}, { timestamps: true });
+}, {
+  timestamps: true
+});
 
-module.exports = mongoose.model("TrainerBooking", TrainerBookingSchema);
+// Index for preventing double bookings
+trainerBookingSchema.index({ trainer: 1, bookingDate: 1, startTime: 1, endTime: 1 });
+
+module.exports = mongoose.model('TrainerBooking', trainerBookingSchema); 

@@ -1,211 +1,257 @@
-// controllers/trainerController.js
-const Trainer = require("../models/TrainerModel");
-const User = require("../models/UserModel");
-const TrainerBooking = require("../models/TrainerBookingModel");
+const Trainer = require('../models/TrainerModel');
+const TrainerBooking = require('../models/TrainerBookingModel');
+const TrainerReview = require('../models/TrainerReviewModel');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const cloudinary = require('../config/cloudinary');
 
-// Get all active trainers
-exports.getTrainers = async (req, res) => {
+// Admin Operations
+exports.createTrainer = async (req, res) => {
+  try {
+    // Debug log
+    console.log('Received body:', req.body);
+    console.log('Received file:', req.file);
+
+    let { name, availability, pricePerSession, bio, qualifications, specializations } = req.body;
+
+    // Parse JSON fields if they are strings
+    if (typeof availability === 'string') availability = JSON.parse(availability);
+    if (typeof qualifications === 'string') qualifications = JSON.parse(qualifications);
+    if (typeof specializations === 'string') specializations = JSON.parse(specializations);
+
+    if (!req.file) {
+      return res.status(400).json({ message: "Image file is required" });
+    }
+
+    // Upload image to cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path);
+    
+    const trainer = new Trainer({
+      name,
+      image: result.secure_url,
+      availability,
+      pricePerSession,
+      bio,
+      qualifications,
+      specializations
+    });
+
+    await trainer.save();
+    res.status(201).json(trainer);
+  } catch (error) {
+    console.error("Trainer creation error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.updateTrainer = async (req, res) => {
+  try {
+    const updates = { ...req.body };
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path);
+      updates.image = result.secure_url;
+    }
+
+    const trainer = await Trainer.findByIdAndUpdate(
+      req.params.id,
+      updates,
+      { new: true, runValidators: true }
+    );
+
+    if (!trainer) {
+      return res.status(404).json({ message: 'Trainer not found' });
+    }
+
+    res.json(trainer);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.deleteTrainer = async (req, res) => {
+  try {
+    const trainer = await Trainer.findByIdAndDelete(req.params.id);
+    if (!trainer) {
+      return res.status(404).json({ message: 'Trainer not found' });
+    }
+    res.json({ message: 'Trainer deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getAllTrainers = async (req, res) => {
   try {
     const trainers = await Trainer.find({ isActive: true });
-    res.status(200).json(trainers);
+    res.json(trainers);
   } catch (error) {
-    console.error("Error fetching trainers:", error);
-    res.status(500).json({ message: "Error fetching trainers", error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
-// Get single trainer details
-exports.getTrainerById = async (req, res) => {
+// Booking Operations
+exports.createBooking = async (req, res) => {
   try {
-    const trainer = await Trainer.findById(req.params.id);
-    if (!trainer) {
-      return res.status(404).json({ message: "Trainer not found" });
-    }
-    res.status(200).json(trainer);
-  } catch (error) {
-    console.error("Error fetching trainer:", error);
-    res.status(500).json({ message: "Error fetching trainer details", error: error.message });
-  }
-};
+    const { trainerId, bookingDate, startTime, endTime } = req.body;
 
-// Book a trainer session
-exports.bookTrainerSession = async (req, res) => {
-  try {
-    // Check if user is authenticated
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: "User is not authenticated" });
-    }
-
-    const { trainerId, date, time, notes } = req.body;
-
-    // Validate required fields
-    if (!trainerId || !date || !time) {
-      return res.status(400).json({ message: "Missing required booking fields" });
-    }
-
-    // Find the trainer
+    // Check if trainer exists and is active
     const trainer = await Trainer.findById(trainerId);
-    if (!trainer) {
-      return res.status(404).json({ message: "Trainer not found" });
+    if (!trainer || !trainer.isActive) {
+      return res.status(404).json({ message: 'Trainer not found or inactive' });
     }
 
-    // Check if the time slot is available
-    const availabilityDate = trainer.availability.find(a => a.date === date);
-    if (!availabilityDate || !availabilityDate.times.includes(time)) {
-      return res.status(400).json({ message: "Selected time slot is not available" });
+    // Check if slot is available
+    const existingBooking = await TrainerBooking.findOne({
+      trainer: trainerId,
+      bookingDate,
+      startTime,
+      endTime,
+      status: { $in: ['pending', 'confirmed'] }
+    });
+
+    if (existingBooking) {
+      return res.status(400).json({ message: 'This time slot is already booked' });
     }
 
-    // Extract the price from the trainer
-    // Converting from string to number as the model stores price as string
-    const price = parseFloat(trainer.price);
-    if (isNaN(price)) {
-      return res.status(500).json({ message: "Invalid trainer price" });
-    }
-
-    // Create a Stripe payment intent
+    // Create Stripe payment intent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(price * 100), // Convert to cents
+      amount: trainer.pricePerSession * 100,
       currency: 'usd',
       payment_method_types: ['card']
     });
 
-    // Create a new booking with payment information
-    const newBooking = new TrainerBooking({
+    const booking = new TrainerBooking({
       user: req.user.id,
       trainer: trainerId,
-      date,
-      time,
-      notes: notes || "",
-      status: "pending", // Set to pending until payment is confirmed
-      totalPrice: price,
-      stripePaymentId: paymentIntent.id,
-      paymentStatus: 'pending'
+      bookingDate,
+      startTime,
+      endTime,
+      price: trainer.pricePerSession,
+      stripePaymentId: paymentIntent.id
     });
 
-    await newBooking.save();
-
-    // Return booking info and client secret
-    res.status(201).json({ 
-      message: "Trainer session booking initiated",
-      booking: newBooking,
-      clientSecret: paymentIntent.client_secret
-    });
-
-  } catch (error) {
-    console.error("Error booking trainer session:", error);
-    res.status(500).json({ message: "Error booking trainer session", error: error.message });
-  }
-};
-
-// Confirm trainer booking payment
-exports.confirmTrainerBookingPayment = async (req, res) => {
-  try {
-    const { bookingId } = req.params;
-    
-    // Find the booking
-    const booking = await TrainerBooking.findById(bookingId);
-    
-    if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
-    }
-    
-    // Check if this booking belongs to the user
-    if (booking.user.toString() !== req.user.id) {
-      return res.status(403).json({ message: "Not authorized to confirm this booking" });
-    }
-
-    // Update booking status
-    booking.status = "confirmed";
-    booking.paymentStatus = "completed";
     await booking.save();
 
-    // Remove the booked time slot from trainer's availability
-    await Trainer.updateOne(
-      { _id: booking.trainer, "availability.date": booking.date },
-      { $pull: { "availability.$.times": booking.time } }
-    );
-    
-    res.status(200).json({ 
-      message: "Booking payment confirmed successfully",
-      booking
+    res.status(201).json({
+      booking,
+      clientSecret: paymentIntent.client_secret
     });
-    
   } catch (error) {
-    console.error("Error confirming booking payment:", error);
-    res.status(500).json({ message: "Error confirming booking payment", error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
-// Get user's trainer bookings
-exports.getUserTrainerBookings = async (req, res) => {
+exports.cancelBooking = async (req, res) => {
+  try {
+    const booking = await TrainerBooking.findById(req.params.id);
+    
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    if (booking.user.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized to cancel this booking' });
+    }
+
+    // Check if cancellation is at least 2 hours before session
+    const bookingDateTime = new Date(`${booking.bookingDate}T${booking.startTime}`);
+    const hoursUntilSession = (bookingDateTime - new Date()) / (1000 * 60 * 60);
+
+    if (hoursUntilSession < 2) {
+      return res.status(400).json({ message: 'Cannot cancel booking less than 2 hours before session' });
+    }
+
+    booking.status = 'cancelled';
+    booking.cancelledAt = new Date();
+    await booking.save();
+
+    // Process refund if payment was made
+    if (booking.paymentStatus === 'completed') {
+      await stripe.refunds.create({
+        payment_intent: booking.stripePaymentId
+      });
+      booking.paymentStatus = 'refunded';
+      await booking.save();
+    }
+
+    res.json({ message: 'Booking cancelled successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getUserBookings = async (req, res) => {
   try {
     const bookings = await TrainerBooking.find({ user: req.user.id })
       .populate('trainer')
-      .sort({ date: 1, time: 1 });
-    
-    res.status(200).json(bookings);
+      .sort({ bookingDate: -1 });
+    res.json(bookings);
   } catch (error) {
-    console.error("Error fetching user's trainer bookings:", error);
-    res.status(500).json({ message: "Error fetching bookings", error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
-// Cancel a trainer booking
-exports.cancelTrainerBooking = async (req, res) => {
+// Admin Booking Management
+exports.getAllBookings = async (req, res) => {
   try {
-    const { bookingId } = req.params;
-    
-    // Find the booking
-    const booking = await TrainerBooking.findById(bookingId);
-    
-    if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
-    }
-    
-    // Check if this booking belongs to the user
-    if (booking.user.toString() !== req.user.id) {
-      return res.status(403).json({ message: "Not authorized to cancel this booking" });
-    }
-    
-    // Check if the booking is in the future (can be cancelled)
-    const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
-    const now = new Date();
-    const hoursDifference = (bookingDateTime - now) / (1000 * 60 * 60);
-    
-    if (hoursDifference < 24) {
-      return res.status(400).json({ 
-        message: "Cannot cancel booking less than 24 hours before session time" 
-      });
-    }
-
-    // Process refund via Stripe if payment was completed
-    if (booking.paymentStatus === 'completed') {
-      const refund = await stripe.refunds.create({
-        payment_intent: booking.stripePaymentId
-      });
-      
-      booking.paymentStatus = 'refunded';
-    }
-    
-    // Add the time slot back to trainer's availability
-    await Trainer.updateOne(
-      { _id: booking.trainer },
-      { $push: { "availability.$[elem].times": booking.time } },
-      { arrayFilters: [{ "elem.date": booking.date }] }
-    );
-    
-    // Update booking status to cancelled
-    booking.status = "cancelled";
-    await booking.save();
-    
-    res.status(200).json({ 
-      message: "Booking cancelled successfully",
-      booking 
-    });
-    
+    const bookings = await TrainerBooking.find()
+      .populate('user', 'name email')
+      .populate('trainer', 'name')
+      .sort({ bookingDate: -1 });
+    res.json(bookings);
   } catch (error) {
-    console.error("Error cancelling booking:", error);
-    res.status(500).json({ message: "Error cancelling booking", error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
+
+exports.getTrainerBookings = async (req, res) => {
+  try {
+    const bookings = await TrainerBooking.find({ trainer: req.params.trainerId })
+      .populate('user', 'name email')
+      .sort({ bookingDate: -1 });
+    res.json(bookings);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Review Operations
+exports.createReview = async (req, res) => {
+  try {
+    const { trainerId, bookingId, rating, review } = req.body;
+
+    const newReview = new TrainerReview({
+      user: req.user.id,
+      trainer: trainerId,
+      booking: bookingId,
+      rating,
+      review
+    });
+
+    await newReview.save();
+
+    // Update trainer's average rating
+    const trainer = await Trainer.findById(trainerId);
+    const reviews = await TrainerReview.find({ trainer: trainerId });
+    
+    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+    trainer.averageRating = totalRating / reviews.length;
+    trainer.totalRatings = reviews.length;
+    
+    await trainer.save();
+
+    res.status(201).json(newReview);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getTrainerReviews = async (req, res) => {
+  try {
+    const reviews = await TrainerReview.find({ trainer: req.params.trainerId })
+      .populate('user', 'name')
+      .sort({ createdAt: -1 });
+    res.json(reviews);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}; 

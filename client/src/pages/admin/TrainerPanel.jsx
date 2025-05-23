@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   Card, Table, Button, Space, Tag, Modal, Form, 
   Input, Select, Switch, message, Tooltip, Popconfirm,
-  Upload, TimePicker, Avatar
+  Upload, TimePicker, Avatar, InputNumber, List
 } from 'antd';
 import { 
   PlusOutlined, EditOutlined, DeleteOutlined, 
   CheckCircleOutlined, CloseCircleOutlined,
   UserOutlined, UploadOutlined, PhoneOutlined,
-  MailOutlined, TrophyOutlined, CalendarOutlined
+  MailOutlined, TrophyOutlined, CalendarOutlined,
+  DollarOutlined, LoadingOutlined, StarOutlined
 } from '@ant-design/icons';
 import apiService from '../../services/apiService';
 import dayjs from 'dayjs';
@@ -25,6 +26,10 @@ const TrainerPanel = () => {
   const [form] = Form.useForm();
   const [tableLoading, setTableLoading] = useState(true);
   const [imageUrl, setImageUrl] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [bookings, setBookings] = useState([]);
+  const [showBookings, setShowBookings] = useState(false);
 
   // Days of the week for availability
   const daysOfWeek = [
@@ -54,13 +59,29 @@ const TrainerPanel = () => {
   // Handle image upload
   const handleImageUpload = async (file) => {
     try {
-      // Here you would typically upload the file to your server or cloud storage
-      // For now, we'll just create a local URL
-      const url = URL.createObjectURL(file);
-      setImageUrl(url);
-      return false; // Prevent default upload behavior
+      setUploading(true);
+      // Validate file type
+      const isImage = file.type.startsWith('image/');
+      if (!isImage) {
+        message.error('You can only upload image files!');
+        setUploading(false);
+        return false;
+      }
+      // Validate file size (max 5MB)
+      const isLt5M = file.size / 1024 / 1024 < 5;
+      if (!isLt5M) {
+        message.error('Image must be smaller than 5MB!');
+        setUploading(false);
+        return false;
+      }
+      setImageUrl(URL.createObjectURL(file));
+      setImageFile(file);
+      setUploading(false);
+      return false; // Prevent Upload from auto-uploading
     } catch (error) {
-      message.error('Failed to upload image.');
+      console.error('Upload handler error:', error);
+      setUploading(false);
+      message.error('Failed to process image');
       return false;
     }
   };
@@ -70,9 +91,10 @@ const TrainerPanel = () => {
     setIsEditing(false);
     setCurrentTrainer(null);
     setImageUrl('');
+    setImageFile(null);
     form.resetFields();
     form.setFieldsValue({
-      active: true,
+      isActive: true,
       availability: [{ day: 'Monday', startTime: null, endTime: null }]
     });
     setModalVisible(true);
@@ -83,6 +105,7 @@ const TrainerPanel = () => {
     setIsEditing(true);
     setCurrentTrainer(trainer);
     setImageUrl(trainer.image);
+    setImageFile(null); // User must re-upload if changing image
     
     // Convert availability times to dayjs objects for TimePicker
     const formattedAvailability = trainer.availability?.map(slot => ({
@@ -93,11 +116,11 @@ const TrainerPanel = () => {
 
     form.setFieldsValue({
       name: trainer.name,
-      email: trainer.email,
-      phone: trainer.phone,
-      specialization: trainer.specialization,
       bio: trainer.bio,
-      active: trainer.isActive,
+      isActive: trainer.isActive,
+      pricePerSession: trainer.pricePerSession,
+      qualifications: trainer.qualifications,
+      specializations: trainer.specializations,
       availability: formattedAvailability
     });
     setModalVisible(true);
@@ -120,29 +143,29 @@ const TrainerPanel = () => {
     try {
       const values = await form.validateFields();
       setLoading(true);
-
       // Format availability times
       const formattedAvailability = values.availability?.map(slot => ({
         day: slot.day,
         startTime: slot.startTime?.format('HH:mm'),
         endTime: slot.endTime?.format('HH:mm')
       })).filter(slot => slot.day && slot.startTime && slot.endTime);
-
       const trainerData = {
         ...values,
-        image: imageUrl || '/api/placeholder/300/300',
-        availability: formattedAvailability
+        image: imageFile,
+        availability: JSON.stringify(formattedAvailability),
+        qualifications: JSON.stringify(values.qualifications || []),
+        specializations: JSON.stringify(values.specializations || [])
       };
-
       if (isEditing) {
         await apiService.adminUpdateTrainer(currentTrainer._id, trainerData);
         message.success('Trainer updated successfully.');
       } else {
-        await apiService.adminAddTrainer(trainerData);
+        await apiService.adminCreateTrainer(trainerData);
         message.success('Trainer created successfully.');
       }
-
       setModalVisible(false);
+      setImageFile(null);
+      setImageUrl('');
       setLoading(false);
       fetchTrainers();
     } catch (error) {
@@ -152,29 +175,15 @@ const TrainerPanel = () => {
     }
   };
 
-  // Add availability slot
-  const handleAddAvailability = () => {
-    const availability = form.getFieldValue('availability') || [];
-    form.setFieldsValue({
-      availability: [...availability, { day: undefined, startTime: null, endTime: null }]
-    });
-  };
-
-  // Remove availability slot
-  const handleRemoveAvailability = (index) => {
-    const availability = form.getFieldValue('availability');
-    form.setFieldsValue({
-      availability: availability.filter((_, i) => i !== index)
-    });
-  };
-
-  // Format date for display
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+  // Handle view bookings
+  const handleViewBookings = async (trainerId) => {
+    try {
+      const response = await apiService.adminGetTrainerBookings(trainerId);
+      setBookings(response);
+      setShowBookings(true);
+    } catch (error) {
+      message.error('Failed to fetch trainer bookings.');
+    }
   };
 
   // Table columns configuration
@@ -188,24 +197,35 @@ const TrainerPanel = () => {
           <Avatar src={record.image} icon={<UserOutlined />} />
           <div>
             <div><strong>{text}</strong></div>
-            <div className="text-gray-500 text-sm">{record.specialization}</div>
+            <div className="text-gray-500 text-sm">
+              {record.specializations?.join(', ')}
+            </div>
           </div>
         </Space>
       ),
     },
     {
-      title: 'Contact',
-      key: 'contact',
+      title: 'Rating',
+      key: 'rating',
       render: (_, record) => (
-        <Space direction="vertical" size="small">
-          <span>
-            <MailOutlined className="mr-2" />{record.email}
-          </span>
-          <span>
-            <PhoneOutlined className="mr-2" />{record.phone || 'N/A'}
-          </span>
+        <Space>
+          <StarOutlined style={{ color: '#faad14' }} />
+          <span>{record.averageRating.toFixed(1)}</span>
+          <span className="text-gray-500">({record.totalRatings})</span>
         </Space>
       ),
+      sorter: (a, b) => a.averageRating - b.averageRating,
+    },
+    {
+      title: 'Price',
+      dataIndex: 'pricePerSession',
+      key: 'pricePerSession',
+      render: (price) => (
+        <Tag color="blue" icon={<DollarOutlined />}>
+          ${price}
+        </Tag>
+      ),
+      sorter: (a, b) => a.pricePerSession - b.pricePerSession,
     },
     {
       title: 'Status',
@@ -223,17 +243,18 @@ const TrainerPanel = () => {
       onFilter: (value, record) => record.isActive === value,
     },
     {
-      title: 'Created Date',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date) => formatDate(date),
-      sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
-    },
-    {
       title: 'Actions',
       key: 'actions',
       render: (_, record) => (
         <Space>
+          <Tooltip title="View Bookings">
+            <Button
+              type="primary"
+              onClick={() => handleViewBookings(record._id)}
+            >
+              Bookings
+            </Button>
+          </Tooltip>
           <Tooltip title="Edit">
             <Button
               type="default"
@@ -259,33 +280,6 @@ const TrainerPanel = () => {
     },
   ];
 
-  // Expandable row to show availability and bio
-  const expandedRowRender = (record) => {
-    return (
-      <div className="p-4">
-        <div className="mb-4">
-          <h4 className="font-semibold mb-2">Bio</h4>
-          <p>{record.bio || 'No bio available'}</p>
-        </div>
-        <div>
-          <h4 className="font-semibold mb-2">Availability</h4>
-          {record.availability && record.availability.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {record.availability.map((slot, index) => (
-                <Tag key={index} className="p-2">
-                  <CalendarOutlined className="mr-2" />
-                  {slot.day}: {slot.startTime} - {slot.endTime}
-                </Tag>
-              ))}
-            </div>
-          ) : (
-            <p>No availability set</p>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <Card
       title={
@@ -309,10 +303,6 @@ const TrainerPanel = () => {
         columns={columns}
         rowKey="_id"
         loading={tableLoading}
-        expandable={{
-          expandedRowRender,
-          rowExpandable: record => true,
-        }}
         pagination={{
           defaultPageSize: 10,
           showSizeChanger: true,
@@ -323,11 +313,19 @@ const TrainerPanel = () => {
       {/* Trainer Form Modal */}
       <Modal
         title={isEditing ? "Edit Trainer" : "Add New Trainer"}
-        visible={modalVisible}
-        onCancel={() => setModalVisible(false)}
+        open={modalVisible}
+        onCancel={() => {
+          setModalVisible(false);
+          setImageFile(null);
+          setImageUrl('');
+        }}
         width={800}
         footer={[
-          <Button key="cancel" onClick={() => setModalVisible(false)}>
+          <Button key="cancel" onClick={() => {
+            setModalVisible(false);
+            setImageFile(null);
+            setImageUrl('');
+          }}>
             Cancel
           </Button>,
           <Button key="submit" type="primary" loading={loading} onClick={handleSaveTrainer}>
@@ -342,7 +340,6 @@ const TrainerPanel = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Form.Item
-                name="image"
                 label="Profile Image"
               >
                 <Upload
@@ -351,13 +348,19 @@ const TrainerPanel = () => {
                   className="avatar-uploader"
                   showUploadList={false}
                   beforeUpload={handleImageUpload}
+                  disabled={uploading}
+                  accept="image/*"
                 >
                   {imageUrl ? (
-                    <img src={imageUrl} alt="avatar" style={{ width: '100%' }} />
+                    <img 
+                      src={imageUrl} 
+                      alt="avatar" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
                   ) : (
                     <div>
-                      <PlusOutlined />
-                      <div style={{ marginTop: 8 }}>Upload</div>
+                      {uploading ? <LoadingOutlined /> : <PlusOutlined />}
+                      <div style={{ marginTop: 8 }}>{uploading ? 'Uploading...' : 'Upload'}</div>
                     </div>
                   )}
                 </Upload>
@@ -372,31 +375,43 @@ const TrainerPanel = () => {
               </Form.Item>
 
               <Form.Item
-                name="email"
-                label="Email"
-                rules={[
-                  { required: true, message: 'Please enter email' },
-                  { type: 'email', message: 'Please enter a valid email' }
-                ]}
+                name="pricePerSession"
+                label="Price per Session"
+                rules={[{ required: true, message: 'Please enter price' }]}
               >
-                <Input prefix={<MailOutlined />} placeholder="Enter email" />
-              </Form.Item>
-
-              <Form.Item
-                name="phone"
-                label="Phone"
-              >
-                <Input prefix={<PhoneOutlined />} placeholder="Enter phone number" />
+                <InputNumber
+                  prefix={<DollarOutlined />}
+                  placeholder="Enter price"
+                  min={0}
+                  step={0.01}
+                  style={{ width: '100%' }}
+                />
               </Form.Item>
             </div>
 
             <div>
               <Form.Item
-                name="specialization"
-                label="Specialization"
-                rules={[{ required: true, message: 'Please enter specialization' }]}
+                name="specializations"
+                label="Specializations"
+                rules={[{ required: true, message: 'Please enter specializations' }]}
               >
-                <Input prefix={<TrophyOutlined />} placeholder="Enter specialization" />
+                <Select
+                  mode="tags"
+                  placeholder="Enter specializations"
+                  tokenSeparators={[',']}
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="qualifications"
+                label="Qualifications"
+                rules={[{ required: true, message: 'Please enter qualifications' }]}
+              >
+                <Select
+                  mode="tags"
+                  placeholder="Enter qualifications"
+                  tokenSeparators={[',']}
+                />
               </Form.Item>
 
               <Form.Item
@@ -413,7 +428,7 @@ const TrainerPanel = () => {
               </Form.Item>
 
               <Form.Item
-                name="active"
+                name="isActive"
                 label="Status"
                 valuePropName="checked"
               >
@@ -429,7 +444,12 @@ const TrainerPanel = () => {
           <div className="mt-4">
             <div className="flex justify-between items-center mb-2">
               <h3 className="font-semibold">Availability</h3>
-              <Button type="dashed" onClick={handleAddAvailability} icon={<PlusOutlined />}>
+              <Button type="dashed" onClick={() => {
+                const availability = form.getFieldValue('availability') || [];
+                form.setFieldsValue({
+                  availability: [...availability, { day: undefined, startTime: null, endTime: null }]
+                });
+              }} icon={<PlusOutlined />}>
                 Add Time Slot
               </Button>
             </div>
@@ -440,7 +460,6 @@ const TrainerPanel = () => {
                   {fields.map((field, index) => (
                     <div key={field.key} className="flex items-center gap-4 bg-gray-50 p-4 rounded">
                       <Form.Item
-                        {...field}
                         name={[field.name, 'day']}
                         label="Day"
                         className="mb-0 flex-1"
@@ -453,7 +472,6 @@ const TrainerPanel = () => {
                       </Form.Item>
 
                       <Form.Item
-                        {...field}
                         name={[field.name, 'startTime']}
                         label="Start Time"
                         className="mb-0 flex-1"
@@ -462,7 +480,6 @@ const TrainerPanel = () => {
                       </Form.Item>
 
                       <Form.Item
-                        {...field}
                         name={[field.name, 'endTime']}
                         label="End Time"
                         className="mb-0 flex-1"
@@ -475,7 +492,7 @@ const TrainerPanel = () => {
                         danger
                         className="mt-6"
                         icon={<DeleteOutlined />}
-                        onClick={() => handleRemoveAvailability(index)}
+                        onClick={() => remove(field.name)}
                       />
                     </div>
                   ))}
@@ -484,6 +501,37 @@ const TrainerPanel = () => {
             </Form.List>
           </div>
         </Form>
+      </Modal>
+
+      {/* Bookings Modal */}
+      <Modal
+        title="Trainer Bookings"
+        open={showBookings}
+        onCancel={() => setShowBookings(false)}
+        width={800}
+        footer={null}
+      >
+        <List
+          dataSource={bookings}
+          renderItem={booking => (
+            <List.Item>
+              <List.Item.Meta
+                title={`Booking on ${new Date(booking.bookingDate).toLocaleDateString()}`}
+                description={
+                  <Space direction="vertical">
+                    <div>Time: {booking.startTime} - {booking.endTime}</div>
+                    <div>Status: <Tag color={
+                      booking.status === 'confirmed' ? 'success' :
+                      booking.status === 'pending' ? 'warning' :
+                      booking.status === 'cancelled' ? 'error' : 'default'
+                    }>{booking.status}</Tag></div>
+                    <div>User: {booking.user?.name}</div>
+                  </Space>
+                }
+              />
+            </List.Item>
+          )}
+        />
       </Modal>
     </Card>
   );

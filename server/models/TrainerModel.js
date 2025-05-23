@@ -1,34 +1,63 @@
-// models/TrainerModel.js
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const ReviewSchema = new mongoose.Schema({
-  rating: { type: Number, required: true, min: 1, max: 5 },
-  comment: { type: String },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  createdAt: { type: Date, default: Date.now }
+const trainerSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  image: {
+    type: String,
+    required: true
+  },
+  availability: [{
+    day: {
+      type: String,
+      enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      required: true
+    },
+    startTime: {
+      type: String,
+      required: true
+    },
+    endTime: {
+      type: String,
+      required: true
+    }
+  }],
+  pricePerSession: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  bio: {
+    type: String,
+    required: true
+  },
+  qualifications: [{
+    type: String,
+    required: true
+  }],
+  specializations: [{
+    type: String,
+    required: true
+  }],
+  averageRating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5
+  },
+  totalRatings: {
+    type: Number,
+    default: 0
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  }
+}, {
+  timestamps: true
 });
 
-const AvailabilitySchema = new mongoose.Schema({
-  day: { type: String, required: true },
-  startTime: { type: String, required: true },
-  endTime: { type: String, required: true }
-});
-
-const TrainerSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  phone: { type: String },
-  specialization: { type: String, required: true },
-  image: { type: String, default: "/api/placeholder/300/300" },
-  experience: { type: String, required: true },
-  price: { type: String, required: true },
-  bio: { type: String, required: true },
-  description: { type: String, required: true },
-  qualifications: [{ type: String }],
-  reviews: [ReviewSchema],
-  availability: [AvailabilitySchema],
-  isActive: { type: Boolean, default: true },
-  lastActive: { type: Date }
-}, { timestamps: true });
-
-module.exports = mongoose.model("Trainer", TrainerSchema);
+module.exports = mongoose.model('Trainer', trainerSchema); 

@@ -10,11 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.0.0",
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/material": "^6.4.7",
-    "@stripe/react-stripe-js": "^3.5.1",
+    "@stripe/react-stripe-js": "^3.7.0",
     "@stripe/stripe-js": "^6.1.0",
     "@tailwindcss/vite": "^4.0.4",
     "antd": "^5.25.1",

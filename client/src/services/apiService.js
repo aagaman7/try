@@ -349,27 +349,45 @@ const apiService = {
     }
   },
 
-  bookTrainerSession: async (bookingData) => {
+  // Trainer Booking Routes
+  createTrainerBooking: async (bookingData) => {
     try {
-      return await api.post('trainers/book', bookingData);
+      return await api.post('trainers/bookings', bookingData);
     } catch (error) {
-      throw error.response?.data || new Error('Failed to book trainer session');
-    }
-  },
-
-  getUserTrainerBookings: async () => {
-    try {
-      return await api.get('trainers/bookings/user');
-    } catch (error) {
-      throw error.response?.data || new Error('Failed to fetch your bookings');
+      throw error.response?.data || new Error('Failed to create trainer booking');
     }
   },
 
   cancelTrainerBooking: async (bookingId) => {
     try {
-      return await api.put(`trainers/bookings/${bookingId}/cancel`);
+      return await api.post(`trainers/bookings/${bookingId}/cancel`);
     } catch (error) {
-      throw error.response?.data || new Error('Failed to cancel booking');
+      throw error.response?.data || new Error('Failed to cancel trainer booking');
+    }
+  },
+
+  getUserTrainerBookings: async () => {
+    try {
+      return await api.get('trainers/bookings');
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch user trainer bookings');
+    }
+  },
+
+  // Trainer Review Routes
+  createTrainerReview: async (reviewData) => {
+    try {
+      return await api.post('trainers/reviews', reviewData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to create trainer review');
+    }
+  },
+
+  getTrainerReviews: async (trainerId) => {
+    try {
+      return await api.get(`trainers/${trainerId}/reviews`);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch trainer reviews');
     }
   },
 
@@ -382,17 +400,43 @@ const apiService = {
     }
   },
 
-  adminAddTrainer: async (trainerData) => {
+  adminCreateTrainer: async (trainerData) => {
     try {
-      return await api.post('trainers/admin', trainerData);
+      const formData = new FormData();
+      Object.keys(trainerData).forEach(key => {
+        if (key === 'image' && trainerData[key] instanceof File) {
+          formData.append('image', trainerData[key]);
+        } else {
+          formData.append(key, trainerData[key]);
+        }
+      });
+      
+      return await api.post('trainers/admin/trainers', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
     } catch (error) {
-      throw error.response?.data || new Error('Failed to add trainer');
+      throw error.response?.data || new Error('Failed to create trainer');
     }
   },
 
-  adminUpdateTrainer: async (trainerId, updateData) => {
+  adminUpdateTrainer: async (trainerId, trainerData) => {
     try {
-      return await api.put(`trainers/admin/${trainerId}`, updateData);
+      const formData = new FormData();
+      Object.keys(trainerData).forEach(key => {
+        if (key === 'image' && trainerData[key] instanceof File) {
+          formData.append('image', trainerData[key]);
+        } else {
+          formData.append(key, trainerData[key]);
+        }
+      });
+      
+      return await api.put(`trainers/admin/trainers/${trainerId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
     } catch (error) {
       throw error.response?.data || new Error('Failed to update trainer');
     }
@@ -400,17 +444,25 @@ const apiService = {
 
   adminDeleteTrainer: async (trainerId) => {
     try {
-      return await api.delete(`trainers/admin/${trainerId}`);
+      return await api.delete(`trainers/admin/trainers/${trainerId}`);
     } catch (error) {
       throw error.response?.data || new Error('Failed to delete trainer');
     }
   },
 
-  adminAddTrainerAvailability: async (trainerId, availabilityData) => {
+  adminGetAllBookings: async () => {
     try {
-      return await api.post(`trainers/admin/${trainerId}/availability`, availabilityData);
+      return await api.get('trainers/admin/bookings');
     } catch (error) {
-      throw error.response?.data || new Error('Failed to update trainer availability');
+      throw error.response?.data || new Error('Failed to fetch all trainer bookings');
+    }
+  },
+
+  adminGetTrainerBookings: async (trainerId) => {
+    try {
+      return await api.get(`trainers/admin/trainers/${trainerId}/bookings`);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch trainer bookings');
     }
   },
 
@@ -509,8 +561,8 @@ const apiService = {
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch all bookings');
     }
-  }
-  
+  },
+
 };
 
 export default apiService;

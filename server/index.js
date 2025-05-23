@@ -3,6 +3,14 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const cloudinary = require('cloudinary').v2;
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 // Existing routes
 const authRoutes = require("./routes/authRoutes");
@@ -28,7 +36,7 @@ app.use(express.json());
 
 // Configure CORS
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'], // Add your frontend URLs
+  origin: ['http://localhost:5173'], // Add your frontend URLs
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
