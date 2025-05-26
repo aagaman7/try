@@ -391,6 +391,22 @@ const apiService = {
     }
   },
 
+  editTrainerReview: async (reviewId, data) => {
+    try {
+      return await api.put(`trainers/reviews/${reviewId}`, data);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to edit trainer review');
+    }
+  },
+
+  deleteTrainerReview: async (reviewId) => {
+    try {
+      return await api.delete(`trainers/reviews/${reviewId}`);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to delete trainer review');
+    }
+  },
+
   // Admin Trainer Routes
   adminGetAllTrainers: async () => {
     try {
@@ -560,6 +576,14 @@ const apiService = {
       return await api.get(`admin/getallbookings${queryString}`);
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch all bookings');
+    }
+  },
+
+  getTrainerAvailableSlots: async (trainerId, date) => {
+    try {
+      return await api.get(`trainers/${trainerId}/available-slots`, { params: { trainerId, date } });
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch available slots');
     }
   },
 

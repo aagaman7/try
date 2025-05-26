@@ -50,7 +50,13 @@ const trainerBookingSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for preventing double bookings
-trainerBookingSchema.index({ trainer: 1, bookingDate: 1, startTime: 1, endTime: 1 });
+// Only enforce uniqueness for pending/confirmed bookings (not cancelled)
+trainerBookingSchema.index(
+  { trainer: 1, bookingDate: 1, startTime: 1, endTime: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: { $in: ['pending', 'confirmed'] } }
+  }
+);
 
 module.exports = mongoose.model('TrainerBooking', trainerBookingSchema); 

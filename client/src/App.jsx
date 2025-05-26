@@ -15,9 +15,9 @@ import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 
 // Import trainer components
-import TrainerList from "./components/trainer/TrainerList";
-import TrainerDetail from "./components/trainer/TrainerDetail";
-import UserBookings from "./components/trainer/UserBookings";
+import TrainerList from "./pages/TrainerList";
+import TrainerDetail from "./pages/TrainerDetail";
+import UserBookings from "./pages/UserBookings";
 
 import Dashboard from "./pages/admin/Dashboard";
 import UsersPanel from "./pages/admin/UsersPanel";
@@ -51,8 +51,8 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 
                 {/* Trainer routes */}
-                <Route path="/trainers" element={<TrainerList />} />
-                <Route path="/trainer/:id" element={<TrainerDetail />} />
+                <Route path="/trainers" element={<TrainerList/>} />
+                <Route path="/trainers/:id" element={<TrainerDetail />} />
                 <Route path="/trainer/bookings" element={<UserBookings />} />
               </Route>
 

@@ -14,7 +14,7 @@ const membershipMiddleware = async (req, res, next) => {
     if (!user || !user.currentMembership) {
       return res.status(403).json({ 
         message: "Access denied. Active membership required.",
-        details: "You need to purchase a membership package before booking a trainer session."
+        details: "You need to purchase a membership package first"
       });
     }
 

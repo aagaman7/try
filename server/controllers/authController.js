@@ -42,7 +42,7 @@ const login = async (req, res) => {
     });
     console.log("🎫 JWT Token generated:", token);
 
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, currentMembership: user.currentMembership } });
   } catch (error) {
     console.log("🔥 Error during login:", error);
     res.status(500).json({ message: "Server error" });

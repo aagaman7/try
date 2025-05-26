@@ -8,6 +8,17 @@ const trainerController = require("../controllers/trainerController");
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 
+// Static routes first
+router.get("/bookings", authMiddleware, membershipMiddleware, trainerController.getUserBookings);
+router.post("/bookings", authMiddleware, membershipMiddleware, trainerController.createBooking);
+router.post("/bookings/:id/cancel", authMiddleware, membershipMiddleware, trainerController.cancelBooking);
+router.post("/reviews", authMiddleware, membershipMiddleware, trainerController.createReview);
+
+// Dynamic routes after
+router.get("/:trainerId", trainerController.getTrainerById);
+router.get("/:trainerId/reviews", trainerController.getTrainerReviews);
+router.get("/:trainerId/available-slots", trainerController.getAvailableSlots);
+
 // Admin routes
 router.get("/admin/all", authMiddleware, adminMiddleware, trainerController.getAllTrainers);
 router.post("/admin/trainers", authMiddleware, adminMiddleware, upload.single('image'), trainerController.createTrainer);
@@ -17,13 +28,10 @@ router.get("/admin/bookings", authMiddleware, adminMiddleware, trainerController
 router.get("/admin/trainers/:trainerId/bookings", authMiddleware, adminMiddleware, trainerController.getTrainerBookings);
 
 // Public routes
-router.get("/trainers", trainerController.getAllTrainers);
-router.get("/trainers/:trainerId/reviews", trainerController.getTrainerReviews);
+router.get("/", trainerController.getAllTrainers);
 
-// Protected routes (require authentication and membership)
-router.post("/bookings", authMiddleware, membershipMiddleware, trainerController.createBooking);
-router.post("/bookings/:id/cancel", authMiddleware, membershipMiddleware, trainerController.cancelBooking);
-router.get("/bookings", authMiddleware, membershipMiddleware, trainerController.getUserBookings);
-router.post("/reviews", authMiddleware, membershipMiddleware, trainerController.createReview);
+// Reviews (membership required to write, auth required to edit/delete)
+router.put("/reviews/:reviewId", authMiddleware, trainerController.editReview);
+router.delete("/reviews/:reviewId", authMiddleware, trainerController.deleteReview);
 
 module.exports = router;
