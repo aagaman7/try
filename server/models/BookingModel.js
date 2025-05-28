@@ -18,9 +18,10 @@ const BookingSchema = new mongoose.Schema({
   endDate: { type: Date },
   status: { 
     type: String, 
-    enum: ['Active', 'Expired', 'Cancelled'], 
+    enum: ['Active', 'Expired', 'Cancelled', 'Frozen'	], 
     default: 'Active' 
-  }
+  },
+  freezeStartDate: { type: Date, default: null },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Booking", BookingSchema);

@@ -104,7 +104,8 @@ const BookingForm = () => {
       setClientSecret(bookingResponse.clientSecret);
       setShowPaymentModal(true);
     } catch (err) {
-      setError(err.message || "Failed to process booking.");
+      // Show backend error message (e.g., active membership restriction)
+      setError(err.message || (err.response && err.response.data && err.response.data.message) || "Failed to process booking.");
     }
   };
 

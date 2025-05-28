@@ -316,11 +316,19 @@ const apiService = {
     }
   },
 
-  freezeMembership: async (freezeData) => {
+  freezeMembership: async () => {
     try {
-      return await api.post('dashboard/freeze', freezeData);
+      return await api.post('dashboard/freeze');
     } catch (error) {
       throw error.response?.data || new Error('Failed to freeze membership');
+    }
+  },
+
+  unfreezeMembership: async () => {
+    try {
+      return await api.post('dashboard/unfreeze');
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to unfreeze membership');
     }
   },
 
@@ -329,6 +337,14 @@ const apiService = {
       return await api.post('dashboard/extend', extensionData);
     } catch (error) {
       throw error.response?.data || new Error('Failed to extend membership');
+    }
+  },
+
+  editMembership: async (editData) => {
+    try {
+      return await api.put('dashboard/edit', editData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to edit membership');
     }
   },
 
@@ -584,6 +600,28 @@ const apiService = {
       return await api.get(`trainers/${trainerId}/available-slots`, { params: { trainerId, date } });
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch available slots');
+    }
+  },
+
+  // Admin: Update Trainer Booking Status
+  adminUpdateTrainerBookingStatus: async (bookingId, status) => {
+    try {
+      return await api.put(`trainers/admin/bookings/${bookingId}/status`, { status });
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to update trainer booking status');
+    }
+  },
+
+  // Get all trainer bookings for a user
+  getTrainerBookingsByUser: async (userId = null) => {
+    try {
+      let url = 'trainers/user/bookings';
+      if (userId) {
+        url += `?userId=${userId}`;
+      }
+      return await api.get(url);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to fetch trainer bookings for user');
     }
   },
 

@@ -46,6 +46,12 @@ exports.createTrainer = async (req, res) => {
 exports.updateTrainer = async (req, res) => {
   try {
     const updates = { ...req.body };
+
+    // Parse JSON fields if they are strings
+    if (typeof updates.availability === 'string') updates.availability = JSON.parse(updates.availability);
+    if (typeof updates.qualifications === 'string') updates.qualifications = JSON.parse(updates.qualifications);
+    if (typeof updates.specializations === 'string') updates.specializations = JSON.parse(updates.specializations);
+
     if (req.file) {
       const result = await cloudinary.uploader.upload(req.file.path);
       updates.image = result.secure_url;
@@ -269,6 +275,28 @@ exports.getTrainerBookings = async (req, res) => {
   }
 };
 
+// Admin: Update trainer booking status
+exports.adminUpdateBookingStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const validStatuses = ['pending', 'confirmed', 'completed', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status value' });
+    }
+    const booking = await TrainerBooking.findByIdAndUpdate(
+      req.params.bookingId,
+      { status },
+      { new: true, runValidators: true }
+    ).populate('user', 'name email').populate('trainer', 'name');
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+    res.json(booking);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Review Operations
 exports.createReview = async (req, res) => {
   try {
@@ -395,4 +423,18 @@ function filterPastAvailabilities(availability) {
     // If today is before or the same as the slot day, keep it
     return slotDayIndex >= todayIndex;
   });
-} 
+}
+
+// Get all trainer bookings for a specific user (admin or self)
+exports.getTrainerBookingsByUser = async (req, res) => {
+  try {
+    // If admin provides userId as query param, use that; otherwise use req.user.id
+    const userId = req.query.userId || req.user.id;
+    const bookings = await TrainerBooking.find({ user: userId })
+      .populate('trainer', 'name')
+      .sort({ bookingDate: -1 });
+    res.json(bookings);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}; 

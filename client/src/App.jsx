@@ -27,6 +27,7 @@ import ServicesPanel from "./pages/admin/ServicesPanel";
 import DiscountPanel from "./pages/admin/DiscountPanel";
 import GymAdminPanel from "./pages/admin/GymAdminPanel";
 import TrainerPanel from "./pages/admin/TrainerPanel";
+import UserDashboard from "./pages/UserDashboard";
 
 // Load Stripe with a fallback
 const stripePromise = loadStripe(
@@ -49,7 +50,7 @@ function App() {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                
+                <Route path="/dashboard" element={<UserDashboard/>} />
                 {/* Trainer routes */}
                 <Route path="/trainers" element={<TrainerList/>} />
                 <Route path="/trainers/:id" element={<TrainerDetail />} />

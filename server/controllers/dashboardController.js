@@ -1,6 +1,8 @@
 const Booking = require("../models/BookingModel");
 const User = require("../models/UserModel");
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const Package = require("../models/PackageModel");
+const Service = require("../models/ServiceModel");
 
 exports.getUserDashboardInfo = async (req, res) => {
   try {
@@ -37,7 +39,8 @@ exports.getUserDashboardInfo = async (req, res) => {
           activeDays: Math.max(0, Math.floor((new Date() - mostRecentBooking.startDate) / (1000 * 60 * 60 * 24))),
           daysRemaining: Math.max(0, Math.floor((mostRecentBooking.endDate - new Date()) / (1000 * 60 * 60 * 24))),
           paymentInterval: mostRecentBooking.paymentInterval,
-          totalPrice: mostRecentBooking.totalPrice
+          totalPrice: mostRecentBooking.totalPrice,
+          status: mostRecentBooking.status
         }
       });
     }
@@ -75,7 +78,8 @@ exports.getUserDashboardInfo = async (req, res) => {
         activeDays: activeDaysTotal,
         daysRemaining: daysRemaining,
         paymentInterval: currentBooking.paymentInterval,
-        totalPrice: currentBooking.totalPrice
+        totalPrice: currentBooking.totalPrice,
+        status: currentBooking.status
       }
     });
   } catch (error) {
@@ -148,9 +152,12 @@ exports.freezeMembership = async (req, res) => {
       return res.status(400).json({ message: "Membership is already frozen" });
     }
 
-    // Update booking status and set freeze start date
+    // Record freeze start date and update status
     currentBooking.status = 'Frozen';
     currentBooking.freezeStartDate = new Date();
+    if (!currentBooking.freezeHistory) {
+      currentBooking.freezeHistory = [];
+    }
     await currentBooking.save();
 
     res.json({ 
@@ -177,42 +184,41 @@ exports.unfreezeMembership = async (req, res) => {
     }
 
     // Calculate freeze duration
-    const freezeDuration = Math.floor(
-      (new Date() - currentBooking.freezeStartDate) / (1000 * 60 * 60 * 24)
-    );
+    const freezeStart = currentBooking.freezeStartDate;
+    const now = new Date();
+    const freezeDuration = Math.floor((now - freezeStart) / (1000 * 60 * 60 * 24));
 
-    // Check if freeze duration exceeds maximum
-    if (freezeDuration > 90) {
-      // If exceeded, only extend by 90 days
-      currentBooking.endDate = new Date(
-        currentBooking.endDate.getTime() + (90 * 24 * 60 * 60 * 1000)
-      );
-    } else {
-      // Extend by actual freeze duration
-      currentBooking.endDate = new Date(
-        currentBooking.endDate.getTime() + (freezeDuration * 24 * 60 * 60 * 1000)
-      );
+    // Minimum freeze period: 7 days
+    if (freezeDuration < 7) {
+      return res.status(400).json({ message: "You must freeze your membership for at least 7 days before unfreezing." });
     }
+
+    // Maximum freeze period: 50 days
+    const maxFreeze = 50;
+    let extensionDays = freezeDuration > maxFreeze ? maxFreeze : freezeDuration;
+
+    // Extend membership end date
+    currentBooking.endDate = new Date(currentBooking.endDate.getTime() + (extensionDays * 24 * 60 * 60 * 1000));
 
     // Update booking status and clear freeze start date
     currentBooking.status = 'Active';
-    currentBooking.freezeStartDate = null;
-
-    // Optional: Add to freeze history
+    // Add freeze record to history
     if (!currentBooking.freezeHistory) {
       currentBooking.freezeHistory = [];
     }
     currentBooking.freezeHistory.push({
-      startDate: currentBooking.freezeStartDate,
-      endDate: new Date(),
+      startDate: freezeStart,
+      endDate: now,
       duration: freezeDuration
     });
+    currentBooking.freezeStartDate = null;
 
     await currentBooking.save();
 
     res.json({ 
       message: "Membership unfrozen successfully",
       freezeDuration,
+      extensionDays,
       newEndDate: currentBooking.endDate,
       status: currentBooking.status
     });
@@ -286,5 +292,69 @@ exports.extendMembership = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: "Error extending membership", error: error.message });
+  }
+};
+
+exports.editMembership = async (req, res) => {
+  try {
+    const { packageId, customServices } = req.body;
+    const userId = req.user.id;
+    const currentBooking = await Booking.findById(req.user.currentMembership).populate('package');
+    if (!currentBooking) {
+      return res.status(404).json({ message: 'No active membership found' });
+    }
+    // Calculate remaining value of current membership (pro-rated)
+    const today = new Date();
+    const totalMembershipDays = Math.floor((currentBooking.endDate - currentBooking.startDate) / (1000 * 60 * 60 * 24));
+    const daysRemaining = Math.max(0, Math.floor((currentBooking.endDate - today) / (1000 * 60 * 60 * 24)));
+    const currentValueRemaining = (daysRemaining / totalMembershipDays) * currentBooking.totalPrice;
+
+    // Get new package and services
+    const newPackage = await Package.findById(packageId);
+    if (!newPackage) {
+      return res.status(400).json({ message: 'Invalid new package' });
+    }
+    let newTotalPrice = newPackage.basePrice;
+    let newServices = [];
+    if (customServices && customServices.length > 0) {
+      newServices = await Service.find({ _id: { $in: customServices } });
+      newTotalPrice += newServices.reduce((sum, s) => sum + s.price, 0);
+    }
+    // New membership total cost for remaining period (pro-rated)
+    const newValueForRemaining = (daysRemaining / totalMembershipDays) * newTotalPrice;
+    const priceDifference = newValueForRemaining - currentValueRemaining;
+
+    let paymentIntent = null;
+    let refund = null;
+    if (priceDifference > 0.01) {
+      // User owes money, create Stripe payment intent
+      paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(priceDifference * 100),
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+    } else if (priceDifference < -0.01) {
+      // User gets credit/refund
+      refund = await stripe.refunds.create({
+        payment_intent: currentBooking.stripePaymentId,
+        amount: Math.round(Math.abs(priceDifference) * 100)
+      });
+    }
+
+    // Update booking with new package/services, recalculate total price
+    currentBooking.package = packageId;
+    currentBooking.customServices = customServices;
+    currentBooking.totalPrice = newTotalPrice;
+    await currentBooking.save();
+
+    res.json({
+      message: 'Membership updated successfully',
+      booking: currentBooking,
+      paymentRequired: !!paymentIntent,
+      paymentIntentClientSecret: paymentIntent ? paymentIntent.client_secret : null,
+      refundDetails: refund
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error editing membership', error: error.message });
   }
 };

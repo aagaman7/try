@@ -59,6 +59,12 @@ exports.createBooking = async (req, res) => {
       totalPrice *= (1 - (discount.percentage / 100));
     }
 
+    // Check if user already has an active membership
+    const user = await User.findById(req.user.id).populate('currentMembership');
+    if (user.currentMembership && user.currentMembership.status !== 'Expired' && user.currentMembership.status !== 'Cancelled') {
+      return res.status(400).json({ message: 'You already have an active membership. Please cancel or wait for it to expire before booking a new one.' });
+    }
+
     // Stripe payment
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(totalPrice * 100), // Convert to cents

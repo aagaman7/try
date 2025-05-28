@@ -514,7 +514,30 @@ const TrainerPanel = () => {
         <List
           dataSource={bookings}
           renderItem={booking => (
-            <List.Item>
+            <List.Item
+              actions={[
+                <Select
+                  key="status"
+                  value={booking.status}
+                  style={{ minWidth: 120 }}
+                  onChange={async (newStatus) => {
+                    try {
+                      await apiService.adminUpdateTrainerBookingStatus(booking._id, newStatus);
+                      message.success('Booking status updated');
+                      // Update local state
+                      setBookings(prev => prev.map(b => b._id === booking._id ? { ...b, status: newStatus } : b));
+                    } catch (err) {
+                      message.error('Failed to update status');
+                    }
+                  }}
+                >
+                  <Select.Option value="pending">Pending</Select.Option>
+                  <Select.Option value="confirmed">Confirmed</Select.Option>
+                  <Select.Option value="completed">Completed</Select.Option>
+                  <Select.Option value="cancelled">Cancelled</Select.Option>
+                </Select>
+              ]}
+            >
               <List.Item.Meta
                 title={`Booking on ${new Date(booking.bookingDate).toLocaleDateString()}`}
                 description={

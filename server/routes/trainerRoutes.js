@@ -26,6 +26,7 @@ router.put("/admin/trainers/:id", authMiddleware, adminMiddleware, upload.single
 router.delete("/admin/trainers/:id", authMiddleware, adminMiddleware, trainerController.deleteTrainer);
 router.get("/admin/bookings", authMiddleware, adminMiddleware, trainerController.getAllBookings);
 router.get("/admin/trainers/:trainerId/bookings", authMiddleware, adminMiddleware, trainerController.getTrainerBookings);
+router.put("/admin/bookings/:bookingId/status", authMiddleware, adminMiddleware, trainerController.adminUpdateBookingStatus);
 
 // Public routes
 router.get("/", trainerController.getAllTrainers);
@@ -33,5 +34,7 @@ router.get("/", trainerController.getAllTrainers);
 // Reviews (membership required to write, auth required to edit/delete)
 router.put("/reviews/:reviewId", authMiddleware, trainerController.editReview);
 router.delete("/reviews/:reviewId", authMiddleware, trainerController.deleteReview);
+
+router.get("/user/bookings", authMiddleware, trainerController.getTrainerBookingsByUser);
 
 module.exports = router;
