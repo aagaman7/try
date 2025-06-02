@@ -133,7 +133,7 @@ const ServicesPanel = () => {
 
   // Format price for display
   const formatPrice = (price) => {
-    return `$${price.toFixed(2)}`;
+    return `Nrs ${price.toFixed(2)}`;
   };
 
   // Table columns configuration
@@ -314,7 +314,7 @@ const ServicesPanel = () => {
           >
             <InputNumber
               min={0}
-              formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              formatter={value => `Nrs ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
               parser={value => value.replace(/\$\s?|(,*)/g, '')}
               style={{ width: '100%' }}
             />

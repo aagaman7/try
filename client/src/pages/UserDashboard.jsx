@@ -7,8 +7,51 @@ import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import EditMembershipModal from '../components/EditMembershipModal';
 import { QRCodeSVG } from 'qrcode.react';
-import { motion } from 'framer-motion';
-// import TrainerBookings from '../components/TrainerBookings';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+// Import icons
+import { FaDumbbell, FaMoneyBillWave, FaUserClock, FaQrcode, FaRegSnowflake, FaCrown } from 'react-icons/fa';
+import { BiDumbbell } from 'react-icons/bi';
+import { MdPayment, MdCancel } from 'react-icons/md';
+import { BsCalendarCheck } from 'react-icons/bs';
+
+// Add new styled components at the top level
+const DashboardCard = ({ icon: Icon, title, value, subtitle, className }) => (
+  <div className={`bg-black/80 backdrop-blur-lg p-6 rounded-2xl border border-rose-500/10 shadow-xl hover:shadow-rose-500/10 transition-all duration-300 ${className}`}>
+    <div className="flex items-center gap-4">
+      <div className="p-3 bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl shadow-lg">
+        <Icon className="w-6 h-6 text-white" />
+      </div>
+      <div>
+        <h3 className="text-gray-400 font-medium mb-1">{title}</h3>
+        <p className="text-2xl font-bold text-white">{value}</p>
+        {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+      </div>
+    </div>
+  </div>
+);
+
+const ActionButton = ({ icon: Icon, label, onClick, variant = 'primary', disabled = false }) => {
+  const baseClasses = "flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 disabled:opacity-50";
+  const variants = {
+    primary: "bg-rose-500 hover:bg-rose-600 text-white shadow-lg hover:shadow-rose-500/30",
+    secondary: "bg-gray-800 hover:bg-gray-700 text-white shadow-lg hover:shadow-gray-800/30",
+    danger: "bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-red-500/30",
+    warning: "bg-yellow-500 hover:bg-yellow-600 text-white shadow-lg hover:shadow-yellow-500/30"
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`${baseClasses} ${variants[variant]}`}
+    >
+      <Icon className="w-5 h-5" />
+      {label}
+    </button>
+  );
+};
 
 const UserDashboard = () => {
   const { currentUser } = useAuth();
@@ -29,11 +72,14 @@ const UserDashboard = () => {
   const [processingAction, setProcessingAction] = useState(false);
   const [actionResult, setActionResult] = useState(null);
   
-  // Payment state
+  // Payment state for extension
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [clientSecret, setClientSecret] = useState('');
+  const [extensionPaymentIntentId, setExtensionPaymentIntentId] = useState('');
+  const [extensionCost, setExtensionCost] = useState(0);
+  const [calculatedNewEndDate, setCalculatedNewEndDate] = useState(null);
   
   const [freezeStatus, setFreezeStatus] = useState({
     status: 'Active',
@@ -52,6 +98,13 @@ const UserDashboard = () => {
   const [qrData, setQrData] = useState(null);
   const [showQR, setShowQR] = useState(false);
   
+  const [showFreezeWarningModal, setShowFreezeWarningModal] = useState(false);
+  const [showUnfreezeModal, setShowUnfreezeModal] = useState(false);
+  const [remainingUnfreezeDays, setRemainingUnfreezeDays] = useState(0);
+  const [canUnfreeze, setCanUnfreeze] = useState(false);
+  
+  const [discounts, setDiscounts] = useState([]); // State for discounts
+  
   useEffect(() => {
     if (!currentUser) {
       navigate('/login');
@@ -61,34 +114,19 @@ const UserDashboard = () => {
     fetchDashboardData();
     fetchFreezeStatus();
     fetchTrainerBookings();
+    fetchDiscounts(); // Fetch discounts
   }, [currentUser, navigate]);
   
   useEffect(() => {
     if (dashboardData?.membershipDetails) {
-      const membershipData = {
-        memberId: currentUser._id,
+      const isActive = dashboardData.membershipDetails.status === 'Active';
+      const qrMemberData = {
         name: currentUser.name,
-        membershipType: dashboardData.membershipDetails.package.name,
-        startDate: dashboardData.membershipDetails.startDate,
-        endDate: dashboardData.membershipDetails.endDate,
-        status: dashboardData.membershipDetails.status,
-        totalPrice: dashboardData.membershipDetails.totalPrice,
-        paymentInterval: dashboardData.membershipDetails.paymentInterval,
-        customServices: dashboardData.membershipDetails.customServices?.map(service => ({
-          name: service.name,
-          price: service.price,
-          description: service.description
-        })) || [],
-        membershipStatus: {
-          isActive: dashboardData.membershipDetails.status === 'Active',
-          isFrozen: dashboardData.membershipDetails.status === 'Frozen',
-          isExpired: dashboardData.membershipDetails.status === 'Expired',
-          isCancelled: dashboardData.membershipDetails.status === 'Cancelled',
-          daysRemaining: dashboardData.membershipDetails.daysRemaining,
-          activeDays: dashboardData.membershipDetails.activeDays
-        }
+        package: dashboardData.membershipDetails.package.name,
+        daysRemaining: dashboardData.membershipDetails.daysRemaining,
+        access: isActive ? "granted" : "denied"
       };
-      setQrData(JSON.stringify(membershipData));
+      setQrData(JSON.stringify(qrMemberData));
     }
   }, [dashboardData, currentUser]);
   
@@ -131,22 +169,90 @@ const UserDashboard = () => {
     }
   };
   
+  const fetchDiscounts = async () => {
+    try {
+      const data = await apiService.getAllDiscounts({ active: true });
+      setDiscounts(data);
+    } catch (err) {
+      console.error('Failed to fetch discounts:', err);
+      // Optionally show an error toast or handle the error appropriately
+    }
+  };
+  
   const handleCancelMembership = async () => {
     try {
       setProcessingAction(true);
-      const result = await apiService.post('dashboard/cancel');
+      console.log('Starting membership cancellation...');
+      
+      // Check if there's an active membership
+      if (!dashboardData?.membershipDetails) {
+        throw new Error('No active membership found to cancel');
+      }
+
+      const result = await apiService.cancelMembership();
+      console.log('Cancellation result:', result);
+
+      if (!result) {
+        throw new Error('No response received from cancellation request');
+      }
+
+      // Show success toast
+      toast.success(
+        <div>
+          <p className="font-semibold">Membership Cancelled Successfully</p>
+          <p className="text-sm mt-1">
+            {result.refundAmount ? 
+              `Refund amount: Nrs ${result.refundAmount.toFixed(2)}` : 
+              'Processing your refund...'}
+          </p>
+        </div>,
+        {
+          icon: '✅',
+          style: {
+            background: '#F0FDF4',
+            color: '#166534',
+            borderLeft: '4px solid #22C55E'
+          },
+          autoClose: 5000
+        }
+      );
+
       setActionResult({
         success: true,
         message: 'Membership cancelled successfully',
-        details: `Refund amount: $${result.refundAmount.toFixed(2)}`
+        details: result.refundAmount ? 
+          `Refund amount: Nrs ${result.refundAmount.toFixed(2)}` : 
+          'Your refund is being processed'
       });
+
       // Refresh dashboard data
-      fetchDashboardData();
+      await fetchDashboardData();
     } catch (err) {
+      console.error('Cancel membership error in component:', err);
+      
+      const errorMessage = err.message || 'Failed to cancel membership';
+      
+      // Show error toast
+      toast.error(
+        <div>
+          <p className="font-semibold">Cancellation Failed</p>
+          <p className="text-sm mt-1">{errorMessage}</p>
+        </div>,
+        {
+          icon: '❌',
+          style: {
+            background: '#FEF2F2',
+            color: '#991B1B',
+            borderLeft: '4px solid #DC2626'
+          },
+          autoClose: 5000
+        }
+      );
+
       setActionResult({
         success: false,
         message: 'Failed to cancel membership',
-        details: err.message
+        details: errorMessage
       });
     } finally {
       setProcessingAction(false);
@@ -154,128 +260,268 @@ const UserDashboard = () => {
     }
   };
   
-  const handleFreezeToggle = async () => {
+  const handleFreezeInitiate = () => {
+    setShowFreezeWarningModal(true);
+  };
+
+  const handleUnfreezeInitiate = () => {
+    // Calculate the earliest unfreeze date
+    const freezeStart = freezeStatus.freezeStartDate ? new Date(freezeStatus.freezeStartDate) : null;
+    const minUnfreezeDate = freezeStart ? new Date(freezeStart.getTime() + 7 * 24 * 60 * 60 * 1000) : null;
+    const now = new Date();
+
+    if (minUnfreezeDate && now < minUnfreezeDate) {
+      // Calculate remaining days
+      const remainingMs = minUnfreezeDate - now;
+      const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
+      setRemainingUnfreezeDays(remainingDays);
+      setCanUnfreeze(false);
+    } else if (freezeStatus.currentFreezeDuration >= 90) {
+      setRemainingUnfreezeDays(0);
+      setCanUnfreeze(false);
+    } else {
+      setCanUnfreeze(true);
+      setRemainingUnfreezeDays(0);
+    }
+    setShowUnfreezeModal(true);
+  };
+
+  const handleFreezeConfirm = async () => {
     try {
       setProcessingAction(true);
-      if (freezeStatus.status === 'Active') {
-        // Show alert before freezing
-        if (!window.confirm('You can unfreeze only after at least 7 days. Do you want to freeze your membership?')) {
-          setProcessingAction(false);
-          return;
+      const result = await apiService.freezeMembership();
+      toast.success('Membership frozen successfully', {
+        icon: '❄️',
+        style: {
+          background: '#F0F9FF',
+          color: '#1E40AF',
+          borderLeft: '4px solid #3B82F6'
         }
-        const result = await apiService.freezeMembership();
-        setActionResult({
-          success: true,
-          message: 'Membership frozen successfully',
-          details: result.message || 'Your membership is now frozen. You can unfreeze it after at least 7 days.'
-        });
-      } else if (freezeStatus.status === 'Frozen') {
-        // Calculate the earliest unfreeze date
-        const freezeStart = freezeStatus.freezeStartDate ? new Date(freezeStatus.freezeStartDate) : null;
-        const minUnfreezeDate = freezeStart ? new Date(freezeStart.getTime() + 7 * 24 * 60 * 60 * 1000) : null;
-        const now = new Date();
-        if (minUnfreezeDate && now < minUnfreezeDate) {
-          // Calculate remaining days
-          const remainingMs = minUnfreezeDate - now;
-          const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
+      });
+      setActionResult({
+        success: true,
+        message: 'Membership frozen successfully',
+        details: result.message || 'Your membership is now frozen. You can unfreeze it after at least 7 days.'
+      });
+      // Refresh data
+      await Promise.all([fetchDashboardData(), fetchFreezeStatus()]);
+    } catch (err) {
+      toast.error(err.message || 'Failed to freeze membership', {
+        icon: '❌',
+        style: {
+          background: '#FEF2F2',
+          color: '#991B1B',
+          borderLeft: '4px solid #DC2626'
+        }
+      });
           setActionResult({
             success: false,
-            message: 'Cannot Unfreeze Yet',
-            details: `You cannot unfreeze until ${minUnfreezeDate.toLocaleDateString()} (remaining: ${remainingDays} days)`
+        message: 'Failed to freeze membership',
+        details: err.message
           });
+    } finally {
           setProcessingAction(false);
-          return;
-        }
-        // Show confirm before unfreezing
-        if (!window.confirm('Are you sure you want to unfreeze your membership?')) {
-          setProcessingAction(false);
-          return;
-        }
-        try {
+      setShowFreezeWarningModal(false);
+    }
+  };
+
+  const handleUnfreezeConfirm = async () => {
+    try {
+      setProcessingAction(true);
           const result = await apiService.unfreezeMembership();
+      toast.success('Membership unfrozen successfully', {
+        icon: '🌞',
+        style: {
+          background: '#F0FDF4',
+          color: '#166534',
+          borderLeft: '4px solid #22C55E'
+        }
+      });
           setActionResult({
             success: true,
             message: 'Membership unfrozen successfully',
             details: result.message || `Your membership was frozen for ${result.freezeDuration} days. Your end date has been extended accordingly.`
           });
+      // Refresh data
+      await Promise.all([fetchDashboardData(), fetchFreezeStatus()]);
         } catch (err) {
+      toast.error(err.message || 'Failed to unfreeze membership', {
+        icon: '❌',
+        style: {
+          background: '#FEF2F2',
+          color: '#991B1B',
+          borderLeft: '4px solid #DC2626'
+        }
+      });
           setActionResult({
             success: false,
             message: 'Failed to unfreeze membership',
-            details: err.message
-          });
-        }
-      }
-      // Refresh both dashboard and freeze status data
-      await Promise.all([fetchDashboardData(), fetchFreezeStatus()]);
-    } catch (err) {
-      setActionResult({
-        success: false,
-        message: 'Failed to toggle membership freeze status',
         details: err.message
       });
     } finally {
       setProcessingAction(false);
+      setShowUnfreezeModal(false);
     }
   };
   
   const handleExtendMembership = async () => {
     try {
       setProcessingAction(true);
-      const result = await apiService.post('dashboard/extend', { extensionMonths });
-      setClientSecret(result.clientSecret);
-      setShowExtendModal(false);
-      // Don't reset processing yet - we need to complete payment
+      setPaymentError(null); // Clear previous payment errors
+      
+      // Calculate the potential price on the frontend for display purposes BEFORE calling backend
+      const baseMonthlyPrice = dashboardData?.membershipDetails?.package?.basePrice || 0;
+      const rawExtensionPrice = baseMonthlyPrice * extensionMonths;
+
+      // Find applicable discount
+      let paymentIntervalForDiscount; // Match intervals used in backend/discounts
+      if (extensionMonths === 1) { paymentIntervalForDiscount = 'Monthly'; }
+      else if (extensionMonths === 3) { paymentIntervalForDiscount = '3 Months'; }
+      else if (extensionMonths === 12) { paymentIntervalForDiscount = 'Yearly'; }
+      else { /* Handle unsupported */ paymentIntervalForDiscount = null; }
+
+      const applicableDiscount = paymentIntervalForDiscount 
+        ? discounts.find(d => d.paymentInterval === paymentIntervalForDiscount)
+        : null;
+
+      let calculatedExtensionCost = rawExtensionPrice;
+      if (applicableDiscount) {
+         calculatedExtensionCost = rawExtensionPrice * (1 - (applicableDiscount.percentage / 100));
+      }
+      calculatedExtensionCost = Math.max(0, calculatedExtensionCost);
+      
+      setExtensionCost(calculatedExtensionCost); // Store calculated cost for display
+
+      // Call backend to create PaymentIntent
+      const result = await apiService.extendMembership({ extensionMonths });
+      
+      if (result.clientSecret && result.paymentIntentId && result.extensionCost !== undefined) {
+        setClientSecret(result.clientSecret);
+        setExtensionPaymentIntentId(result.paymentIntentId);
+        setExtensionCost(result.extensionCost); // Use cost from backend as the source of truth
+        setCalculatedNewEndDate(result.newEndDate); // Store the new end date
+        setShowExtendModal(false); // Close selection modal
+        // Payment modal will open because clientSecret state is set
+      } else {
+        throw new Error('Invalid response from extension initiation');
+      }
     } catch (err) {
+      console.error('Extend membership initiation error:', err);
+      
+      const errorMessage = err.message || 'Failed to initiate membership extension';
+      
+      toast.error(errorMessage, {
+        icon: '❌',
+        style: {
+          background: '#FEF2F2',
+          color: '#991B1B',
+          borderLeft: '4px solid #DC2626'
+        },
+        autoClose: 5000
+      });
+
       setActionResult({
         success: false,
-        message: 'Failed to initiate membership extension',
-        details: err.message
+        message: 'Initiation Failed',
+        details: errorMessage
       });
+    } finally {
       setProcessingAction(false);
-      setShowExtendModal(false);
     }
   };
   
   const handleExtensionPayment = async (event) => {
     event.preventDefault();
     
-    if (!stripe || !elements) {
+    if (!stripe || !elements || !clientSecret || !extensionPaymentIntentId) {
+      // Stripe.js has not yet loaded or client secret is missing
       return;
     }
     
     try {
       setPaymentProcessing(true);
+      setPaymentError(null);
+      
+      const cardElement = elements.getElement(CardElement);
       
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
-          card: elements.getElement(CardElement)
+          card: cardElement,
+          // You might add billing_details here if you collect them
+          // billing_details: {
+          //   name: currentUser.name, // Example
+          // }
         }
       });
       
       if (result.error) {
-        setPaymentError(result.error.message);
-      } else if (result.paymentIntent.status === 'succeeded') {
+        throw new Error(result.error.message);
+      }
+      
+      if (result.paymentIntent.status === 'succeeded') {
         setPaymentSuccess(true);
-        // Confirm payment with our backend
-        await apiService.post('payments/confirm', {
-          paymentIntentId: result.paymentIntent.id
-        });
+        // Payment succeeded. At this point, the backend should have already updated the booking end date
+        // because we updated the backend controller to do it after creating the PaymentIntent.
+        // If you implement a webhook or separate confirmation endpoint later, 
+        // you would call that endpoint here instead of just refetching data.
         
         setActionResult({
           success: true,
-          message: 'Membership extended successfully',
-          details: `Membership extended by ${extensionMonths} month(s)`
+          message: 'Membership Extended Successfully!',
+          details: `Your membership has been extended by ${extensionMonths} month(s).`
+        });
+
+        // Show success toast
+        toast.success(`Membership successfully extended by ${extensionMonths} month(s)!`, {
+          icon: '✅',
+          style: {
+            background: '#F0FDF4',
+            color: '#166534',
+            borderLeft: '4px solid #22C55E'
+          },
+          autoClose: 5000
         });
         
-        // Refresh dashboard data
-        fetchDashboardData();
+        // Reset states and refetch dashboard data
+        setClientSecret('');
+        setExtensionPaymentIntentId('');
+        setPaymentProcessing(false);
+        // No need to reset extensionCost, it will be recalculated next time
+        
+        await fetchDashboardData(); // Refresh data to show new end date etc.
+        // No need to fetch freeze status or trainer bookings unless they are affected
+
+      } else {
+         // Handle other potential statuses like 'requires_action'
+         throw new Error(`Payment status: ${result.paymentIntent.status}`);
       }
+
     } catch (err) {
-      setPaymentError(err.message);
+      console.error('Extension payment error:', err);
+      
+      const errorMessage = err.message || 'Payment failed. Please try again.';
+      setPaymentError(errorMessage);
+      
+      toast.error(errorMessage, {
+        icon: '❌',
+        style: {
+          background: '#FEF2F2',
+          color: '#991B1B',
+          borderLeft: '4px solid #DC2626'
+        },
+        autoClose: 5000
+      });
+
+      setActionResult({
+        success: false,
+        message: 'Payment Failed',
+        details: errorMessage
+      });
+
     } finally {
       setPaymentProcessing(false);
-      setProcessingAction(false);
+      // Keep payment modal open on error to allow user to try again
+      // setShowPaymentModal(false); // Only close on success
     }
   };
   
@@ -343,17 +589,92 @@ const UserDashboard = () => {
   // If no membership found
   if (!dashboardData || !dashboardData.membershipDetails) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6">
-        <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">No Active Membership</h2>
-            <p className="mb-4">You don't have an active membership at the moment.</p>
-            <button 
-              onClick={() => navigate('/membership')}
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            >
-              View Membership Options
-            </button>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto text-center">
+          {/* Decorative elements */}
+          <div className="mb-8">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="h-32 w-32 bg-blue-100 rounded-full opacity-50 animate-pulse"></div>
+              </div>
+              <div className="relative">
+                <svg className="mx-auto h-24 w-24 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Main content */}
+          <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 backdrop-blur-lg bg-opacity-90">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Welcome to Your Fitness Journey!
+            </h2>
+            <p className="text-xl text-gray-600 mb-8">
+              You don't have an active membership yet. Start your transformation today by choosing a membership plan that fits your goals.
+            </p>
+
+            {/* Features grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+              <div className="p-6 bg-blue-50 rounded-xl">
+                <div className="text-blue-600 mb-3">
+                  <svg className="h-8 w-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Flexible Plans</h3>
+                <p className="text-gray-600">Choose from various membership options that suit your schedule and budget</p>
+              </div>
+
+              <div className="p-6 bg-blue-50 rounded-xl">
+                <div className="text-blue-600 mb-3">
+                  <svg className="h-8 w-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Expert Trainers</h3>
+                <p className="text-gray-600">Access to certified trainers who will guide you through your fitness journey</p>
+              </div>
+
+              <div className="p-6 bg-blue-50 rounded-xl">
+                <div className="text-blue-600 mb-3">
+                  <svg className="h-8 w-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Premium Equipment</h3>
+                <p className="text-gray-600">State-of-the-art facilities and equipment for the best workout experience</p>
+              </div>
+            </div>
+
+            {/* CTA Button */}
+            <div className="flex flex-col items-center space-y-4">
+              <button 
+                onClick={() => navigate('/membership')}
+                className="inline-flex items-center px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-xl hover:bg-blue-700 transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                View Membership Plans
+                <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+              <p className="text-sm text-gray-500">
+                Questions? Contact our support team for assistance
+              </p>
+            </div>
+          </div>
+
+          {/* Decorative bottom elements */}
+          <div className="mt-12 flex justify-center space-x-6">
+            <div className="animate-bounce-slow">
+              <div className="h-3 w-3 bg-blue-400 rounded-full opacity-75"></div>
+            </div>
+            <div className="animate-bounce-slow delay-75">
+              <div className="h-3 w-3 bg-blue-500 rounded-full opacity-75"></div>
+            </div>
+            <div className="animate-bounce-slow delay-150">
+              <div className="h-3 w-3 bg-blue-600 rounded-full opacity-75"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -372,223 +693,231 @@ const UserDashboard = () => {
     status: membershipStatus
   } = dashboardData.membershipDetails;
   
+  const renderFreezeButton = () => {
+    if (freezeStatus.status === 'Frozen') {
+      return (
+        <button
+          onClick={handleUnfreezeInitiate}
+          className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+          disabled={processingAction}
+        >
+          Unfreeze Membership
+        </button>
+      );
+    } else {
+      return (
+        <button
+          onClick={handleFreezeInitiate}
+          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded flex items-center gap-2"
+          disabled={processingAction}
+        >
+          Freeze Membership
+        </button>
+      );
+    }
+  };
+  
+  // Calculate price details for the Extend Membership Modal dynamically
+  const calculateExtensionPriceDetails = (months) => {
+    const baseMonthlyPrice = dashboardData?.membershipDetails?.package?.basePrice || 0;
+    const rawExtensionPrice = baseMonthlyPrice * months;
+
+    let paymentIntervalForDiscount; // Match intervals used in backend/discounts
+    if (months === 1) { paymentIntervalForDiscount = 'Monthly'; }
+    else if (months === 3) { paymentIntervalForDiscount = '3 Months'; }
+    else if (months === 6) { paymentIntervalForDiscount = '6 Months'; } // Added 6 months as per frontend UI
+    else if (months === 12) { paymentIntervalForDiscount = 'Yearly'; }
+    else { paymentIntervalForDiscount = null; }
+
+    const applicableDiscount = paymentIntervalForDiscount 
+      ? discounts.find(d => d.paymentInterval === paymentIntervalForDiscount)
+      : null;
+
+    const discountPercentage = applicableDiscount?.percentage || 0;
+    const discountAmount = rawExtensionPrice * (discountPercentage / 100);
+    const totalToPay = rawExtensionPrice - discountAmount;
+
+    return {
+      baseMonthlyPrice,
+      rawExtensionPrice,
+      discountPercentage,
+      discountAmount,
+      totalToPay: Math.max(0, totalToPay) // Ensure total is not negative
+    };
+  };
+
+  const extensionPriceDetails = calculateExtensionPriceDetails(extensionMonths);
+
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Notification Section */}
-        {actionResult && (
-          <div className={`p-4 rounded-lg ${actionResult.success ? 'bg-green-100 border border-green-400' : 'bg-red-100 border border-red-400'}`}>
-            <div className="flex justify-between">
-              <h3 className={`font-bold ${actionResult.success ? 'text-green-800' : 'text-red-800'}`}>
-                {actionResult.message}
-              </h3>
-              <button onClick={dismissNotification} className="text-gray-600 hover:text-gray-800">×</button>
-            </div>
-            <p className="mt-1">{actionResult.details}</p>
-          </div>
-        )}
+        <AnimatePresence>
+          {actionResult && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className={`p-4 rounded-xl border ${
+                actionResult.success 
+                  ? 'bg-green-500/10 border-green-500/20 text-green-500' 
+                  : 'bg-red-500/10 border-red-500/20 text-red-500'
+              }`}
+            >
+              <div className="flex justify-between items-center">
+                <h3 className="font-bold text-lg">{actionResult.message}</h3>
+                <button onClick={dismissNotification} className="text-2xl">&times;</button>
+              </div>
+              <p className="mt-1 text-sm opacity-80">{actionResult.details}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Membership Details Section */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="p-6 bg-blue-600 text-white">
-            <h1 className="text-3xl font-bold">Your Membership Dashboard</h1>
-            <p className="text-blue-100">
-              Hello, {currentUser.name}! Here's your membership overview.
-            </p>
+        {/* Main Dashboard Section */}
+        <div className="bg-black/40 backdrop-blur-xl rounded-3xl border border-rose-500/10 overflow-hidden shadow-xl">
+          <div className="p-8 bg-gradient-to-r from-rose-500/20 to-transparent">
+            <div className="flex items-center gap-4">
+              <FaCrown className="w-10 h-10 text-rose-500" />
+              <div>
+                <h1 className="text-3xl font-bold text-white">Your Membership Dashboard</h1>
+                <p className="text-gray-400">
+                  Welcome back, {currentUser.name}! Here's your membership overview.
+                </p>
+              </div>
+            </div>
           </div>
-          
-          {/* Membership Stats with QR Code */}
-          <div className="p-6">
-            <h2 className="text-2xl font-bold mb-4">Membership Overview</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="flex flex-col gap-4">
-                {/* Membership Type */}
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-semibold mb-2">Membership Type</h3>
-                <p className="text-2xl font-bold text-blue-600">{membershipPackage.name}</p>
-                <p className="text-sm text-gray-500 mt-1">{membershipPackage.description}</p>
-                <div className="mt-2">
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                    membershipStatus === 'Active' ? 'bg-green-100 text-green-700' :
-                    membershipStatus === 'Expired' ? 'bg-gray-200 text-gray-700' :
-                    membershipStatus === 'Cancelled' ? 'bg-red-100 text-red-700' :
-                    membershipStatus === 'Frozen' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-gray-100 text-gray-700'
-                  }`}>
-                    {membershipStatus}
-                  </span>
+
+          <div className="p-8">
+            {/* Membership Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              <DashboardCard
+                icon={FaDumbbell}
+                title="Membership Type"
+                value={dashboardData?.membershipDetails?.package?.name}
+                subtitle={membershipStatus}
+              />
+              <DashboardCard
+                icon={FaMoneyBillWave}
+                title="Payment Plan"
+                value={`Nrs ${dashboardData?.membershipDetails?.totalPrice.toFixed(2)}`}
+                subtitle={`${dashboardData?.membershipDetails?.paymentInterval} payment`}
+              />
+              <DashboardCard
+                icon={FaUserClock}
+                title="Days Remaining"
+                value={`${daysRemaining} days`}
+                subtitle={`Ends: ${format(new Date(endDate), 'MMM dd, yyyy')}`}
+              />
+            </div>
+
+            {/* QR Code Section */}
+            <div className="bg-black/60 rounded-2xl p-6 mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <FaQrcode className="w-6 h-6 text-rose-500" />
+                  <h2 className="text-xl font-bold text-white">Membership QR Code</h2>
                 </div>
-              </div>
-              
-              {/* Payment Details */}
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-semibold mb-2">Payment Details</h3>
-                <p className="text-2xl font-bold text-blue-600">${totalPrice.toFixed(2)}</p>
-                <p className="text-sm text-gray-500 mt-1">{paymentInterval} payment plan</p>
-              </div>
-              </div>
-
-              {/* QR Code */}
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col items-center justify-center">
-                <h3 className="text-lg font-semibold mb-2">Membership QR Code</h3>
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                  className="relative"
+                <button 
+                  onClick={() => setShowQR(!showQR)}
+                  className="px-4 py-2 bg-rose-500/10 text-rose-500 rounded-lg hover:bg-rose-500/20 transition-colors"
                 >
-                  {qrData && (
-                    <QRCodeSVG
-                      value={qrData}
-                      size={200}
-                      level="H"
-                      includeMargin={true}
-                      className="transition-all duration-300 hover:scale-110"
-                    />
-                  )}
-                </motion.div>
-                <p className="text-sm text-gray-500 mt-2">Scan to verify membership</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <h3 className="text-lg font-semibold mb-2">Start Date</h3>
-                <p className="text-xl font-bold">{format(new Date(startDate), 'MMM dd, yyyy')}</p>
-              </div>
-              
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <h3 className="text-lg font-semibold mb-2">Days Active</h3>
-                <p className="text-xl font-bold">{activeDays} days</p>
-              </div>
-              
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <h3 className="text-lg font-semibold mb-2">Days Remaining</h3>
-                <p className="text-xl font-bold">{daysRemaining} days</p>
-                <p className="text-sm text-gray-500 mt-1">Ends: {format(new Date(endDate), 'MMM dd, yyyy')}</p>
-              </div>
-            </div>
-            
-            {/* Custom Services */}
-            {customServices && customServices.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-2">Custom Services</h3>
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <ul className="divide-y divide-gray-200">
-                    {customServices.map(service => (
-                      <li key={service._id} className="py-2">
-                        <div className="flex justify-between">
-                          <span>{service.name}</span>
-                          <span className="font-semibold">${service.price.toFixed(2)}</span>
-                        </div>
-                        <p className="text-sm text-gray-500">{service.description}</p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )}
-            
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-4 mt-8">
-              <button
-                onClick={() => setShowEditModal(true)}
-                className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
-              >
-                Edit Membership
-              </button>
-              <button 
-                onClick={() => setShowExtendModal(true)}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                disabled={freezeStatus.status === 'Frozen'}
-              >
-                Extend Membership
-              </button>
-              {/* Freeze/Unfreeze Button */}
-              {membershipStatus === 'Frozen' ? (
-                <button
-                  onClick={handleFreezeToggle}
-                  className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                  disabled={processingAction}
-                >
-                  Unfreeze Membership
+                  {showQR ? 'Hide QR' : 'Show QR'}
                 </button>
-              ) : (
-                <button
-                  onClick={handleFreezeToggle}
-                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded flex items-center gap-2"
-                  disabled={processingAction}
-                >
-                  Freeze Membership
-                </button>
-              )}
-              <button 
-                onClick={() => setShowCancelModal(true)}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-              >
-                Cancel Membership
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Trainer Bookings Section */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="p-6 bg-blue-600 text-white">
-            <h2 className="text-2xl font-bold">Your Trainer Sessions</h2>
-            <p className="text-blue-100">
-              Manage your personal training sessions and bookings.
-            </p>
-          </div>
-
-          <div className="p-6">
-            {loadingBookings ? (
-              <div className="flex justify-center items-center h-32">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
               </div>
-            ) : bookingsError ? (
-              <div className="text-center text-red-500">
-                <p>{bookingsError}</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-semibold">Upcoming Sessions</h3>
-                  <Link
-                    to="/trainers"
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              
+              <AnimatePresence>
+                {showQR && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="flex justify-center"
                   >
-                    Book New Session
-                  </Link>
+                    <div className="bg-white p-4 rounded-xl">
+                      <QRCodeSVG
+                        value={qrData}
+                        size={200}
+                        level="H"
+                        includeMargin={true}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-4 mb-8">
+              <ActionButton
+                icon={MdPayment}
+                label="Extend Membership"
+                onClick={() => setShowExtendModal(true)}
+                disabled={freezeStatus.status === 'Frozen'}
+              />
+              <ActionButton
+                icon={FaRegSnowflake}
+                label={freezeStatus.status === 'Frozen' ? 'Unfreeze Membership' : 'Freeze Membership'}
+                onClick={freezeStatus.status === 'Frozen' ? handleUnfreezeInitiate : handleFreezeInitiate}
+                variant="warning"
+              />
+              <ActionButton
+                icon={MdCancel}
+                label="Cancel Membership"
+                onClick={() => setShowCancelModal(true)}
+                variant="danger"
+              />
+            </div>
+
+            {/* Trainer Sessions Section */}
+            <div className="bg-black/60 rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <BiDumbbell className="w-6 h-6 text-rose-500" />
+                  <h2 className="text-xl font-bold text-white">Training Sessions</h2>
                 </div>
+                <Link
+                  to="/trainers"
+                  className="flex items-center gap-2 px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
+                >
+                  <BsCalendarCheck className="w-4 h-4" />
+                  Book New Session
+                </Link>
+              </div>
+
+              {loadingBookings ? (
+                <div className="flex justify-center items-center h-32">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-rose-500"></div>
+                </div>
+              ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+                  <table className="w-full">
                     <thead>
-                      <tr>
-                        <th className="px-4 py-2 border-b">Trainer</th>
-                        <th className="px-4 py-2 border-b">Date</th>
-                        <th className="px-4 py-2 border-b">Time</th>
-                        <th className="px-4 py-2 border-b">Status</th>
+                      <tr className="text-left border-b border-gray-800">
+                        <th className="py-3 px-4 text-gray-400">Trainer</th>
+                        <th className="py-3 px-4 text-gray-400">Date</th>
+                        <th className="py-3 px-4 text-gray-400">Time</th>
+                        <th className="py-3 px-4 text-gray-400">Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {trainerBookings.length === 0 ? (
                         <tr>
-                          <td colSpan="4" className="text-center py-4 text-gray-500">No trainer bookings found.</td>
+                          <td colSpan="4" className="text-center py-8 text-gray-500">
+                            No trainer bookings found
+                          </td>
                         </tr>
                       ) : (
                         trainerBookings.map(booking => (
-                          <tr key={booking._id} className="hover:bg-gray-50">
-                            <td className="px-4 py-2 border-b">{booking.trainer?.name || 'Unknown Trainer'}</td>
-                            <td className="px-4 py-2 border-b">{booking.bookingDate ? new Date(booking.bookingDate).toLocaleDateString() : 'N/A'}</td>
-                            <td className="px-4 py-2 border-b">{booking.startTime} - {booking.endTime}</td>
-                            <td className="px-4 py-2 border-b">
-                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                                booking.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                                booking.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                booking.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                                'bg-gray-100 text-gray-700'
+                          <tr key={booking._id} className="border-b border-gray-800 hover:bg-white/5 transition-colors">
+                            <td className="py-4 px-4 text-white">{booking.trainer?.name || 'Unknown Trainer'}</td>
+                            <td className="py-4 px-4 text-white">{booking.bookingDate ? new Date(booking.bookingDate).toLocaleDateString() : 'N/A'}</td>
+                            <td className="py-4 px-4 text-white">{booking.startTime} - {booking.endTime}</td>
+                            <td className="py-4 px-4">
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                booking.status === 'confirmed' ? 'bg-green-500/20 text-green-500' :
+                                booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-500' :
+                                booking.status === 'cancelled' ? 'bg-red-500/20 text-red-500' :
+                                'bg-gray-500/20 text-gray-500'
                               }`}>
                                 {booking.status}
                               </span>
@@ -599,127 +928,313 @@ const UserDashboard = () => {
                     </tbody>
                   </table>
                 </div>
-              </>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
-      
+
       {/* Cancel Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4">Cancel Membership</h2>
-            <p className="mb-4">
-              Are you sure you want to cancel your membership? This action cannot be undone.
-            </p>
-            <p className="mb-4 text-sm bg-yellow-50 p-3 rounded border border-yellow-200">
-              <strong>Note:</strong> If you cancel within 7 days of starting, you'll receive a full refund. 
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCancelModal(false)} />
+          <div className="relative z-50 flex items-center justify-center min-h-screen p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full"
+            >
+              <h2 className="text-2xl font-bold mb-4 text-gray-800">Cancel Membership</h2>
+              <div className="mb-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                <p className="text-amber-800 font-medium mb-2">
+                  Are you sure you want to cancel your membership?
+                </p>
+                <p className="text-sm text-amber-700">
+                  This action cannot be undone. If you cancel within 7 days of starting, you'll receive a full refund.
               Otherwise, you'll receive a pro-rated refund based on remaining days.
             </p>
+              </div>
             <div className="flex justify-end gap-4">
               <button 
                 onClick={() => setShowCancelModal(false)}
-                className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+                  className="px-6 py-2.5 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
                 disabled={processingAction}
               >
-                No, Keep Membership
+                  Keep Membership
               </button>
               <button 
                 onClick={handleCancelMembership}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                disabled={processingAction}
+                  className="px-6 py-2.5 rounded-lg text-white bg-red-500 hover:bg-red-600 transition-colors duration-200 flex items-center"
+                disabled={false}
               >
-                {processingAction ? 'Processing...' : 'Yes, Cancel Membership'}
+                  {processingAction ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Processing...
+                    </>
+                  ) : 'Cancel Membership'}
               </button>
             </div>
+            </motion.div>
           </div>
         </div>
       )}
       
-      {/* Freeze Status Section */}
-      {freezeStatus.status === 'Frozen' && (
-        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <h3 className="text-lg font-semibold mb-2 text-yellow-800">
-            Membership Status: Frozen
-          </h3>
-          <div className="space-y-2">
-            <p>
-              <span className="font-medium">Freeze Start Date:</span>{' '}
-              {format(new Date(freezeStatus.freezeStartDate), 'MMM dd, yyyy')}
-            </p>
-            <p>
-              <span className="font-medium">Current Freeze Duration:</span>{' '}
-              {freezeStatus.currentFreezeDuration} days
-            </p>
-            <p>
-              <span className="font-medium">Remaining Freeze Days:</span>{' '}
-              {freezeStatus.remainingFreezeDays} days
-            </p>
-            {freezeStatus.remainingFreezeDays <= 14 && (
-              <p className="text-red-600">
-                Warning: You are approaching the maximum freeze duration of 90 days.
-                Please unfreeze your membership to avoid any issues.
-              </p>
-            )}
+      {/* Freeze Warning Modal */}
+      {showFreezeWarningModal && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowFreezeWarningModal(false)} />
+          <div className="relative z-50 flex items-center justify-center min-h-screen p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full"
+            >
+              <h2 className="text-2xl font-bold mb-4 text-gray-800">Freeze Membership</h2>
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-blue-800 font-medium mb-2">
+                  Important Information About Freezing
+                </p>
+                <ul className="text-sm text-blue-700 list-disc list-inside space-y-2">
+                  <li>Your membership will be frozen for a minimum of 7 days</li>
+                  <li>You cannot unfreeze before the 7-day period ends</li>
+                  <li>Maximum freeze duration is 90 days per year</li>
+                  <li>Your membership end date will be extended by the freeze duration</li>
+                </ul>
+              </div>
+              <div className="flex justify-end gap-4">
+                <button 
+                  onClick={() => setShowFreezeWarningModal(false)}
+                  className="px-6 py-2.5 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
+                  disabled={processingAction}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleFreezeConfirm}
+                  className="px-6 py-2.5 rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition-colors duration-200"
+                  disabled={processingAction}
+                >
+                  {processingAction ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                      </svg>
+                      Processing...
+                    </span>
+                  ) : 'Confirm Freeze'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      )}
+
+      {/* Unfreeze Modal */}
+      {showUnfreezeModal && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowUnfreezeModal(false)} />
+          <div className="relative z-50 flex items-center justify-center min-h-screen p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full"
+            >
+              <h2 className="text-2xl font-bold mb-4 text-gray-800">
+                {canUnfreeze ? 'Unfreeze Membership' : 'Cannot Unfreeze Yet'}
+              </h2>
+              <div className={`mb-6 p-4 rounded-lg border ${
+                canUnfreeze ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'
+              }`}>
+                {canUnfreeze ? (
+                  <>
+                    <p className="text-green-800 font-medium mb-2">
+                      Membership Information
+                    </p>
+                    <div className="text-sm text-green-700 space-y-2">
+                      <p>Your membership has been frozen for {freezeStatus.currentFreezeDuration} days.</p>
+                      <p>After unfreezing:</p>
+                      <ul className="list-disc list-inside pl-2 space-y-1">
+                        <li>Your membership will be reactivated immediately</li>
+                        <li>Your end date will be extended by {freezeStatus.currentFreezeDuration} days</li>
+                        <li>You can freeze again if you have remaining freeze days</li>
+                      </ul>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-amber-800 font-medium mb-2">
+                      {remainingUnfreezeDays > 0 ? 'Minimum Freeze Period Not Completed' : 'Maximum Freeze Duration Exceeded'}
+                    </p>
+                    <p className="text-sm text-amber-700">
+                      {remainingUnfreezeDays > 0 ? (
+                        <>
+                          You need to wait {remainingUnfreezeDays} more days before you can unfreeze your membership.
+                          The minimum freeze period is 7 days.
+                        </>
+                      ) : (
+                        <>
+                          Your membership has been frozen for the maximum allowed duration of 90 days.
+                          Please contact support if you need assistance.
+                        </>
+                      )}
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="flex justify-end gap-4">
+                <button 
+                  onClick={() => setShowUnfreezeModal(false)}
+                  className="px-6 py-2.5 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
+                  disabled={processingAction}
+                >
+                  {canUnfreeze ? 'Cancel' : 'Close'}
+                </button>
+                {canUnfreeze && (
+                  <button 
+                    onClick={handleUnfreezeConfirm}
+                    className="px-6 py-2.5 rounded-lg text-white bg-yellow-500 hover:bg-yellow-600 transition-colors duration-200"
+                    disabled={processingAction}
+                  >
+                    {processingAction ? (
+                      <span className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                        </svg>
+                        Processing...
+                      </span>
+                    ) : 'Confirm Unfreeze'}
+                  </button>
+                )}
+              </div>
+            </motion.div>
           </div>
         </div>
       )}
       
       {/* Extend Modal */}
       {showExtendModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4">Extend Membership</h2>
-            <p className="mb-4">
-              Extend your membership by selecting the number of months below:
-            </p>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowExtendModal(false)} />
+          <div className="relative z-50 flex items-center justify-center min-h-screen p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full"
+            >
+              <h2 className="text-2xl font-bold mb-4 text-gray-800">Extend Membership</h2>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                 Extension Duration
               </label>
               <select 
                 value={extensionMonths} 
                 onChange={(e) => setExtensionMonths(parseInt(e.target.value))}
-                className="w-full p-2 border border-gray-300 rounded"
+                  className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
               >
                 <option value="1">1 Month</option>
-                <option value="3">3 Months</option>
-                <option value="6">6 Months</option>
-                <option value="12">12 Months</option>
+                  <option value="3">3 Months</option>
+                  <option value="6">6 Months</option>
+                  <option value="12">12 Months</option>
               </select>
+
+                {/* Price Calculation Display */}
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600">Base Monthly Price:</span>
+                    <span className="font-medium">Nrs {extensionPriceDetails.baseMonthlyPrice.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600">Duration:</span>
+                    <span className="font-medium">{extensionMonths} {extensionMonths === 1 ? 'Month' : 'Months'}</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600">Subtotal (Raw):</span>
+                    <span className="font-medium">Nrs {extensionPriceDetails.rawExtensionPrice.toFixed(2)}</span>
+                  </div>
+                  {extensionPriceDetails.discountPercentage > 0 && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-gray-600">Discount ({extensionPriceDetails.discountPercentage}%):</span>
+                      <span className="font-medium text-green-600">- Nrs {extensionPriceDetails.discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between items-center">
+                    <span className="text-gray-800 font-semibold">Total to Pay:</span>
+                    <span className="text-xl font-bold text-blue-600">
+                      Nrs {extensionPriceDetails.totalToPay.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
             </div>
             <div className="flex justify-end gap-4">
               <button 
                 onClick={() => setShowExtendModal(false)}
-                className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+                  className="px-6 py-2.5 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
                 disabled={processingAction}
               >
                 Cancel
               </button>
               <button 
                 onClick={handleExtendMembership}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                  className="px-6 py-2.5 rounded-lg text-white bg-green-500 hover:bg-green-600 transition-colors duration-200 flex items-center"
                 disabled={processingAction}
               >
-                {processingAction ? 'Processing...' : 'Continue to Payment'}
+                  {processingAction ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      Processing...
+                    </>
+                  ) : 'Continue to Payment'}
               </button>
             </div>
+            </motion.div>
           </div>
         </div>
       )}
       
       {/* Payment Modal */}
       {clientSecret && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4">Complete Payment</h2>
-            <form onSubmit={handleExtensionPayment}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Card Details
-                </label>
-                <div className="p-3 border border-gray-300 rounded">
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setClientSecret('')} />
+          <div className="relative z-50 flex items-center justify-center min-h-screen p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full"
+            >
+              <h2 className="text-2xl font-bold mb-4 text-gray-800">Complete Payment</h2>
+              {paymentError && <p className="text-red-500 text-sm mb-4">{paymentError}</p>} {/* Display payment errors */}
+              <form onSubmit={handleExtensionPayment}>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Card Details\
+                </label>\
+                  <div className="p-4 rounded-lg border border-gray-300 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all duration-200">
                   <CardElement options={{
                     style: {
                       base: {
@@ -736,24 +1251,57 @@ const UserDashboard = () => {
                   }} />
                 </div>
               </div>
+              {/* Payment Summary in Payment Modal */}
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 mb-6">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-800 font-semibold">Amount Due:</span>
+                    <span className="text-xl font-bold text-blue-600">
+                      Nrs {extensionCost.toFixed(2)}
+                    </span>
+                  </div>
+              </div>
               <div className="flex justify-end gap-4">
                 <button 
                   type="button"
-                  onClick={() => setClientSecret('')}
-                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+                  onClick={() => {
+                    setClientSecret('');
+                    setPaymentError(null);
+                  }}
+                    className="px-6 py-2.5 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
                   disabled={paymentProcessing}
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
-                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                  disabled={paymentProcessing || !stripe}
+                    className="px-6 py-2.5 rounded-lg text-white bg-indigo-500 hover:bg-indigo-600 transition-colors duration-200 flex items-center"
+                  disabled={paymentProcessing || !stripe || !elements}
                 >
-                  {paymentProcessing ? 'Processing...' : 'Pay & Extend'}
+                    {paymentProcessing ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                        Processing...
+                      </>
+                    ) : `Pay Nrs ${extensionCost.toFixed(2)}`}
                 </button>
               </div>
             </form>
+            </motion.div>
           </div>
         </div>
       )}
@@ -766,6 +1314,27 @@ const UserDashboard = () => {
         onSuccess={() => {
           setShowEditModal(false);
           fetchDashboardData();
+        }}
+      />
+
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+        style={{ zIndex: 9999 }}
+        toastStyle={{
+          background: '#18181b',
+          color: '#fff',
+          borderLeft: '4px solid #f43f5e',
+          borderRadius: '10px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
         }}
       />
     </div>

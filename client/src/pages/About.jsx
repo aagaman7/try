@@ -145,10 +145,10 @@ const About = () => {
 
   return (
     <div className="about-page">
-      <section className="hero-section bg-gradient-to-r from-blue-700 to-indigo-900 text-white py-20">
+      <section className="hero-section bg-black text-white py-20">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">About RBL Fitness</h1>
-          <p className="text-xl max-w-3xl">Where fitness meets community and transformation happens daily. Discover the story, people, and philosophy that make us more than just a gym.</p>
+          <h1 className="text-4xl md:text-5xl font-black mb-6">About RBL Fitness</h1>
+          <p className="text-xl max-w-3xl text-gray-300">Where fitness meets community and transformation happens daily. Discover the story, people, and philosophy that make us more than just a gym.</p>
         </div>
       </section>
 
@@ -168,9 +168,9 @@ const About = () => {
       </div>
 
       {/* Team Section */}
-      <section className="bg-gray-100 py-16" id="our-team">
+      <section className="bg-black py-16" id="our-team">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Meet Our Team</h2>
+          <h2 className="text-3xl font-black text-white text-center mb-12">Meet Our Team</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {teamMembers.map(member => (
               <TeamMember
@@ -187,19 +187,19 @@ const About = () => {
       </section>
 
       {/* Facilities Section */}
-      <section className="py-16" id="facilities">
+      <section className="py-16 bg-[#fafafa]" id="facilities">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Our Facilities</h2>
+          <h2 className="text-3xl font-black text-center mb-12">Our Facilities</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {facilities.map((facility, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-300">
+              <div key={index} className="bg-black text-white rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300">
                 <h3 className="text-xl font-bold mb-3">{facility.name}</h3>
-                <p className="text-gray-700">{facility.description}</p>
+                <p className="text-gray-300">{facility.description}</p>
               </div>
             ))}
           </div>
           <div className="text-center mt-12">
-            <Link to="/facilities" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-300">
+            <Link to="/facilities" className="inline-block bg-rose-500 hover:bg-rose-600 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300">
               Take a Virtual Tour
             </Link>
           </div>
@@ -207,27 +207,29 @@ const About = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="bg-gray-100 py-16" id="testimonials">
+      <section className="bg-black py-16" id="testimonials">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Member Success Stories</h2>
+          <h2 className="text-3xl font-black text-white text-center mb-12">Member Success Stories</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {testimonials.map(testimonial => (
-              <div key={testimonial.id} className="bg-white rounded-lg shadow-md p-6 flex flex-col md:flex-row items-center">
-                <img 
-                  src={testimonial.image} 
-                  alt={testimonial.name} 
-                  className="w-24 h-24 rounded-full object-cover mb-4 md:mb-0 md:mr-6"
-                />
-                <div>
-                  <blockquote className="text-gray-700 italic mb-4">"{testimonial.quote}"</blockquote>
-                  <div className="font-semibold">{testimonial.name}</div>
-                  <div className="text-sm text-blue-600">{testimonial.achievement}</div>
+              <div key={testimonial.id} className="bg-white/10 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-white/10">
+                <div className="flex flex-col md:flex-row items-center">
+                  <img 
+                    src={testimonial.image} 
+                    alt={testimonial.name} 
+                    className="w-24 h-24 rounded-full object-cover mb-4 md:mb-0 md:mr-6 ring-2 ring-rose-500"
+                  />
+                  <div>
+                    <blockquote className="text-gray-300 italic mb-4">"{testimonial.quote}"</blockquote>
+                    <div className="font-bold text-white">{testimonial.name}</div>
+                    <div className="text-sm text-rose-500">{testimonial.achievement}</div>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
           <div className="text-center mt-12">
-            <Link to="/testimonials" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-300">
+            <Link to="/testimonials" className="inline-block bg-rose-500 hover:bg-rose-600 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300">
               Read More Success Stories
             </Link>
           </div>
@@ -235,15 +237,15 @@ const About = () => {
       </section>
 
       {/* Call to Action */}
-      <section className="bg-gradient-to-r from-blue-700 to-indigo-900 text-white py-16">
+      <section className="bg-black text-white py-16">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-6">Ready to Start Your Fitness Journey?</h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">Join the FitLife community today and experience the difference that personalized training and genuine support can make.</p>
+          <h2 className="text-3xl font-black mb-6">Ready to Start Your Fitness Journey?</h2>
+          <p className="text-xl mb-8 max-w-2xl mx-auto text-gray-300">Join the RBL Fitness community today and experience the difference that personalized training and genuine support can make.</p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link to="/membership" className="bg-white text-blue-700 hover:bg-gray-100 font-semibold py-3 px-6 rounded-lg transition-colors duration-300">
+            <Link to="/membership" className="bg-rose-500 hover:bg-rose-600 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300">
               View Membership Options
             </Link>
-            <Link to="/contact" className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-blue-700 font-semibold py-3 px-6 rounded-lg transition-colors duration-300">
+            <Link to="/contact" className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-black font-bold py-4 px-8 rounded-xl transition-all duration-300">
               Schedule a Tour
             </Link>
           </div>

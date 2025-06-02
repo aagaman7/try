@@ -157,7 +157,7 @@ const Dashboard = () => {
       },
       {
         label: 'This Month Revenue',
-        value: `$${dashboardData.thisMonthRevenue.toFixed(2)}`,
+        value: `Nrs ${dashboardData.thisMonthRevenue.toFixed(2)}`,
         prefix: <DollarOutlined />,
         color: '#faad14' // yellow color
       }
@@ -208,7 +208,7 @@ const Dashboard = () => {
       title: "Price",
       dataIndex: "totalPrice",
       key: "totalPrice",
-      render: (text) => `$${text.toFixed(2)}`,
+      render: (text) => `Nrs ${text.toFixed(2)}`,
     },
     {
       title: "Status",

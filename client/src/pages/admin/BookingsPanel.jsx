@@ -484,7 +484,7 @@ const BookingsPanel = () => {
       ),
       dataIndex: "totalPrice",
       key: "totalPrice",
-      render: (text) => (text ? `$${text.toFixed(2)}` : "$0.00"),
+      render: (text) => (text ? `Nrs ${text.toFixed(2)}` : "Nrs 0.00"),
     },
     {
       title: "Status",
@@ -666,7 +666,7 @@ const BookingsPanel = () => {
               {currentBooking.paymentInterval || "N/A"}
             </Descriptions.Item>
             <Descriptions.Item label="Total Price">
-              ${currentBooking.totalPrice ? currentBooking.totalPrice.toFixed(2) : "0.00"}
+              Nrs {currentBooking.totalPrice ? currentBooking.totalPrice.toFixed(2) : "0.00"}
             </Descriptions.Item>
             <Descriptions.Item label="Status">
               <Tag color={
@@ -751,7 +751,7 @@ const BookingsPanel = () => {
             <Select placeholder="Select package">
               {packages.map((pkg) => (
                 <Option key={pkg._id} value={pkg._id}>
-                  {pkg.name} (${pkg.basePrice ? pkg.basePrice.toFixed(2) : "0.00"})
+                  {pkg.name} (Nrs {pkg.basePrice ? pkg.basePrice.toFixed(2) : "0.00"})
                 </Option>
               ))}
             </Select>
@@ -765,7 +765,7 @@ const BookingsPanel = () => {
             >
               {services.map((service) => (
                 <Option key={service._id} value={service._id}>
-                  {service.name} (${service.price ? service.price.toFixed(2) : "0.00"})
+                  {service.name} (Nrs {service.price ? service.price.toFixed(2) : "0.00"})
                 </Option>
               ))}
             </Select>
@@ -823,7 +823,7 @@ const BookingsPanel = () => {
             <InputNumber
               min={0}
               formatter={(value) =>
-                `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                `Nrs ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
               }
               parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
               disabled

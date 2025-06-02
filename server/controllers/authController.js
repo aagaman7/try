@@ -2,6 +2,14 @@ const User = require("../models/UserModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+const validatePassword = (password) => {
+  const minLength = password.length >= 8;
+  const hasNumber = /\d/.test(password);
+  const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  
+  return minLength && hasNumber && hasSymbol;
+};
+
 const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -9,6 +17,13 @@ const register = async (req, res) => {
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: "User already exists" });
+
+    // Validate password
+    if (!validatePassword(password)) {
+      return res.status(400).json({ 
+        message: "Password must be at least 8 characters long and contain at least one number and one symbol" 
+      });
+    }
 
     // Hash password
     const salt = await bcrypt.genSalt(10);

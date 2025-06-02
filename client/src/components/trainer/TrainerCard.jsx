@@ -59,9 +59,9 @@ const TrainerCard = ({ trainer }) => {
         </div>
 
         <div className="flex items-center justify-between mt-4">
-          <span className="text-lg font-bold text-blue-600">
-            ${pricePerSession}/session
-          </span>
+          <p className="text-gray-600">
+            <span className="font-semibold">Nrs {pricePerSession}</span> per session
+          </p>
           <Link
             to={`/trainers/${_id}`}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-300"

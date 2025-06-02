@@ -29,6 +29,8 @@ const contactRoutes = require("./routes/contactRoutes");
 // Added contact routes
 // const contactRoutes = require("./routes/contactRoutes");
 
+const paymentRoutes = require('./routes/paymentRoutes');
+
 const app = express();
 
 // Regular middleware
@@ -70,6 +72,8 @@ app.use("/api/contact", contactRoutes);
 
 // Added contact routes
 // app.use("/api/contact", contactRoutes);
+
+app.use('/api/payments', paymentRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, (err) => {

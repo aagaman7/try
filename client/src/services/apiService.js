@@ -24,25 +24,45 @@ api.interceptors.request.use(
 
 // Handle API errors
 api.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    // console.log('API Response:', response);
+    return response.data;
+  },
   (error) => {
+    console.error('API Error Interceptor:', {
+      error,
+      response: error.response,
+      request: error.request,
+      config: error.config
+    });
+
+    // Handle network errors
+    if (!error.response) {
+      return Promise.reject(new Error('Network error - please check your connection'));
+    }
+
+    // Handle unauthorized errors
+    if (error.response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+      return Promise.reject(new Error('Session expired - please login again'));
+    }
+
+    // Handle other errors
     const errorMessage = 
       error.response?.data?.message || 
       error.response?.data || 
       error.message || 
       'Something went wrong';
-    
-    // Handle token expiration
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // Only redirect if we're not already on the login page
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
-      }
-    }
-    
-    return Promise.reject(typeof errorMessage === 'string' ? new Error(errorMessage) : errorMessage);
+
+    return Promise.reject(
+      typeof errorMessage === 'string' 
+        ? new Error(errorMessage) 
+        : errorMessage
+    );
   }
 );
 
@@ -310,9 +330,33 @@ const apiService = {
 
   cancelMembership: async () => {
     try {
-      return await api.post('dashboard/cancel');
+      console.log('Initiating membership cancellation...');
+      const response = await api.post('dashboard/cancel');
+      console.log('Cancel membership response:', response);
+      if (!response) {
+        throw new Error('No response received from server');
+      }
+      return response;
     } catch (error) {
-      throw error.response?.data || new Error('Failed to cancel membership');
+      console.error('Cancel membership error details:', {
+        error,
+        response: error.response,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      
+      // If it's an axios error with response data
+      if (error.response?.data) {
+        throw error.response.data;
+      }
+      
+      // If it's a network error
+      if (error.request) {
+        throw new Error('Network error - no response received');
+      }
+      
+      // For other types of errors
+      throw error.message ? error : new Error('Failed to cancel membership');
     }
   },
 
@@ -334,8 +378,12 @@ const apiService = {
 
   extendMembership: async (extensionData) => {
     try {
-      return await api.post('dashboard/extend', extensionData);
+      console.log('Extending membership with data:', extensionData);
+      const result = await api.post('dashboard/extend', extensionData);
+      console.log('Extension result:', result);
+      return result;
     } catch (error) {
+      console.error('Extension error:', error);
       throw error.response?.data || new Error('Failed to extend membership');
     }
   },
@@ -622,6 +670,15 @@ const apiService = {
       return await api.get(url);
     } catch (error) {
       throw error.response?.data || new Error('Failed to fetch trainer bookings for user');
+    }
+  },
+
+  // Payment Routes
+  createPaymentIntent: async (paymentData) => {
+    try {
+      return await api.post('payments/create-intent', paymentData);
+    } catch (error) {
+      throw error.response?.data || new Error('Failed to create payment intent');
     }
   },
 

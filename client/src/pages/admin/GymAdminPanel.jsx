@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Home, Users, Calendar, Package, Dumbbell, Tag, LogOut, ChevronRight, ChevronDown, ChevronLeft } from "lucide-react";
+import { Menu, X, Home, Users, Calendar, Package, Dumbbell, Tag, LogOut, ChevronRight, ChevronDown, ChevronLeft, UserCog } from "lucide-react";
 import { useAuth } from "../../context/AuthContext"; // Import the AuthContext
 
 function GymAdminPanel() {
@@ -56,7 +56,7 @@ function GymAdminPanel() {
     { path: "packages", name: "Packages", icon: <Package size={20} /> },
     { path: "services", name: "Services", icon: <Dumbbell size={20} /> },
     { path: "discounts", name: "Discounts", icon: <Tag size={20} /> },
-    { path: "trainers", name: "Trainers", icon: <Tag size={20} /> },
+    { path: "trainers", name: "Trainers", icon: <UserCog size={20} /> },
   ];
 
   return (

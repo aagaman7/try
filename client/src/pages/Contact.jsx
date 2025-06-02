@@ -6,21 +6,21 @@ const Contact = () => {
   const locations = [
     {
       id: 1,
-      name: 'Main Facility',
-      address: '123 Fitness Street, Cityville, State 12345',
-      phone: '(555) 123-4567',
-      email: 'main@rbl.com',
-      hours: 'Monday-Friday: 5am-10pm, Weekends: 7am-8pm',
+      name: 'RBL Fitness - Kapan',
+      address: 'Kapan Height, Near Kapan Monastery, Budhanilkantha-10, Kathmandu, Nepal',
+      phone: '+977-01-4821567',
+      email: 'info@rblfitness.com.np',
+      hours: 'Sunday-Friday: 5:30am-9pm, Saturday: 6am-7pm',
       mapLink: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3531.6754691376977!2d85.35439737546808!3d27.727304676171023!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb1b003f9d0a6f%3A0x16ed7c38c35db998!2sRBL%20Fitness%20Club!5e0!3m2!1sen!2snp!4v1741512187554!5m2!1sen!2snp'
     },
     {
       id: 2,
-      name: 'Downtown Branch',
-      address: '456 Health Avenue, Downtown, State 12345',
-      phone: '(555) 987-6543',
-      email: 'downtown@rblgym.com',
-      hours: 'Monday-Friday: 6am-9pm, Weekends: 8am-6pm',
-      mapLink: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3532.875859167983!2d85.35439741523194!3d27.72730468277806!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb1b003f9d0a6f%3A0x16ed7c38c35db998!2sRBL%20Fitness%20Club!5e0!3m2!1sen!2snp!4v1710000000000'
+      name: 'RBL Fitness - Chabahil',
+      address: 'Chabahil Ring Road, Near Ganesthan Temple, Kathmandu-7, Nepal',
+      phone: '+977-01-4482345',
+      email: 'chabahil@rblfitness.com.np',
+      hours: 'Sunday-Friday: 6am-8:30pm, Saturday: 6:30am-6:30pm',
+      mapLink: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3532.2754691376977!2d85.34639737546808!3d27.717304676171023!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb1b003f9d0a6f%3A0x16ed7c38c35db998!2sRBL%20Fitness%20Club!5e0!3m2!1sen!2snp!4v1741512187554!5m2!1sen!2snp'
     }
   ];
 
@@ -28,8 +28,8 @@ const Contact = () => {
     <Container maxWidth="lg" sx={{ py: 8 }}>
       <Box textAlign="center" mb={8}>
         <Typography variant="h3" component="h1" gutterBottom sx={{ 
-          fontWeight: 700,
-          color: 'text.primary',
+          fontWeight: 900,
+          color: 'black',
           letterSpacing: '-0.02em',
           mb: 2
         }}>
@@ -42,7 +42,7 @@ const Contact = () => {
           mx: 'auto',
           fontSize: '1.125rem'
         }}>
-          We're here to help! Reach out with any questions about memberships, classes, or facilities.
+          Ready to start your fitness journey? Get in touch with us for memberships, classes, or any questions about our facilities.
         </Typography>
       </Box>
       
@@ -53,20 +53,22 @@ const Contact = () => {
             p: 4, 
             mb: 4,
             borderRadius: 3,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            backgroundColor: 'black',
+            color: 'white',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
             border: '1px solid',
-            borderColor: 'divider'
+            borderColor: 'rgba(255,255,255,0.1)'
           }}>
             <Typography variant="h5" component="h2" gutterBottom sx={{
-              fontWeight: 600,
-              color: 'text.primary',
+              fontWeight: 700,
+              color: 'white',
               mb: 3
             }}>
               Send Us a Message
             </Typography>
             
-            <Typography variant="body1" paragraph sx={{ color: 'text.secondary' }}>
-              Fill out the form below and our team will get back to you within 24 hours.
+            <Typography variant="body1" paragraph sx={{ color: 'rgba(255,255,255,0.7)' }}>
+              Have questions about our facilities or membership plans? Fill out the form below and our team will get back to you within 24 hours.
             </Typography>
             
             <ContactForm />
@@ -78,13 +80,15 @@ const Contact = () => {
           <Paper elevation={0} sx={{ 
             p: 4,
             borderRadius: 3,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            backgroundColor: 'black',
+            color: 'white',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
             border: '1px solid',
-            borderColor: 'divider'
+            borderColor: 'rgba(255,255,255,0.1)'
           }}>
             <Typography variant="h5" component="h2" gutterBottom sx={{
-              fontWeight: 600,
-              color: 'text.primary',
+              fontWeight: 700,
+              color: 'white',
               mb: 3
             }}>
               Our Locations
@@ -93,25 +97,25 @@ const Contact = () => {
             {locations.map((location) => (
               <Box key={location.id} sx={{ mb: 4 }}>
                 <Typography variant="h6" component="h3" gutterBottom sx={{
-                  fontWeight: 600,
-                  color: 'text.primary'
+                  fontWeight: 700,
+                  color: 'white'
                 }}>
                   {location.name}
                 </Typography>
                 
-                <Typography variant="body1" paragraph sx={{ color: 'text.secondary' }}>
+                <Typography variant="body1" paragraph sx={{ color: 'rgba(255,255,255,0.7)' }}>
                   <strong>Address:</strong> {location.address}
                 </Typography>
                 
-                <Typography variant="body1" paragraph sx={{ color: 'text.secondary' }}>
+                <Typography variant="body1" paragraph sx={{ color: 'rgba(255,255,255,0.7)' }}>
                   <strong>Phone:</strong> {location.phone}
                 </Typography>
                 
-                <Typography variant="body1" paragraph sx={{ color: 'text.secondary' }}>
+                <Typography variant="body1" paragraph sx={{ color: 'rgba(255,255,255,0.7)' }}>
                   <strong>Email:</strong> {location.email}
                 </Typography>
                 
-                <Typography variant="body1" paragraph sx={{ color: 'text.secondary' }}>
+                <Typography variant="body1" paragraph sx={{ color: 'rgba(255,255,255,0.7)' }}>
                   <strong>Hours:</strong> {location.hours}
                 </Typography>
               </Box>

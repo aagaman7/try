@@ -1,61 +1,70 @@
 import React from 'react';
-import ServiceCard from '../common/ServiceCard';
-
-const servicesData = [
-  {
-    id: 1,
-    title: 'Strength Training',
-    description: 'Build muscle, increase strength, and improve your overall fitness with our comprehensive strength training programs.',
-    icon: 'dumbbell',
-  },
-  {
-    id: 2,
-    title: 'Cardio Fitness',
-    description: 'Improve your heart health and endurance with our variety of cardio equipment and high-energy classes.',
-    icon: 'heart',
-  },
-  {
-    id: 3,
-    title: 'Personal Training',
-    description: 'Get personalized attention and custom workout plans from our certified personal trainers.',
-    icon: 'user',
-  },
-  {
-    id: 4,
-    title: 'Yoga Classes',
-    description: 'Find balance, flexibility, and inner peace with our range of yoga classes for all skill levels.',
-    icon: 'yoga',
-  },
-  {
-    id: 5,
-    title: 'Nutrition Consulting',
-    description: 'Fuel your workouts and recover properly with expert nutrition guidance tailored to your goals.',
-    icon: 'apple',
-  },
-  {
-    id: 6,
-    title: 'Group Classes',
-    description: 'Stay motivated and have fun with our high-energy group fitness classes led by expert instructors.',
-    icon: 'users',
-  },
-];
+import { FaDumbbell, FaRunning, FaHeartbeat, FaUsers, FaAppleAlt, FaSwimmer } from 'react-icons/fa';
 
 const Services = () => {
+  const services = [
+    {
+      icon: <FaDumbbell className="w-8 h-8" />,
+      title: 'Strength Training',
+      description: 'Build muscle and increase strength with our comprehensive weight training programs.'
+    },
+    {
+      icon: <FaRunning className="w-8 h-8" />,
+      title: 'Cardio Classes',
+      description: 'Improve your endurance and burn calories with our high-energy cardio sessions.'
+    },
+    {
+      icon: <FaHeartbeat className="w-8 h-8" />,
+      title: 'Personal Training',
+      description: 'Get personalized attention and achieve your goals faster with our expert trainers.'
+    },
+    {
+      icon: <FaUsers className="w-8 h-8" />,
+      title: 'Group Classes',
+      description: 'Join our motivating group sessions for a fun and effective workout experience.'
+    },
+    {
+      icon: <FaAppleAlt className="w-8 h-8" />,
+      title: 'Nutrition Planning',
+      description: 'Receive expert guidance on nutrition to complement your fitness journey.'
+    },
+    {
+      icon: <FaSwimmer className="w-8 h-8" />,
+      title: 'Swimming Pool',
+      description: 'Access our Olympic-sized pool for swimming and aqua fitness classes.'
+    }
+  ];
+
   return (
-    <section className="py-16 bg-white">
+    <section className="py-24 bg-[#fafafa]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+          <h2 className="text-4xl font-black text-black mb-4">
             Our Services
           </h2>
-          <p className="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
-            We offer a wide range of fitness services to help you reach your goals.
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Comprehensive fitness solutions tailored to your needs
           </p>
         </div>
 
-        <div className="mt-12 grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {servicesData.map((service) => (
-            <ServiceCard key={service.id} service={service} />
+        <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {services.map((service, index) => (
+            <div
+              key={index}
+              className="bg-white p-8 rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]"
+            >
+              <div className="flex items-center mb-6">
+                <div className="p-4 bg-black rounded-lg text-white">
+                  {service.icon}
+                </div>
+                <h3 className="ml-4 text-xl font-bold text-black">
+                  {service.title}
+                </h3>
+              </div>
+              <p className="text-gray-600 text-lg">
+                {service.description}
+              </p>
+            </div>
           ))}
         </div>
       </div>

@@ -9,7 +9,7 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const isActive = (path) => {
-    return location.pathname === path ? "text-indigo-600 font-medium" : "text-slate-700 hover:text-indigo-600 transition-colors duration-200";
+    return location.pathname === path ? "text-rose-500 font-bold" : "text-gray-300 hover:text-white transition-colors duration-200";
   };
 
   const toggleMenu = () => {
@@ -20,25 +20,26 @@ const Navbar = () => {
     try {
       const success = await logout();
       if (success) {
-        navigate('/login'); // Redirect to home page after successful logout
+        navigate('/login');
       }
     } catch (error) {
       console.error("Failed to log out", error);
     }
   };
 
-  // Close mobile menu when changing routes
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location.pathname]);
 
   return (
-    <nav className="fixed top-0 w-full bg-white shadow-md z-50">
+    <nav className="fixed top-0 w-full bg-black/95 backdrop-blur-sm border-b border-white/10 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between h-20">
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center">
-              <span className="ml-2 text-xl font-bold text-rose-500 tracking-tight">RBL Fitness</span>
+              <span className="text-2xl font-black text-white tracking-tight">
+                RBL <span className="text-rose-500">Fitness</span>
+              </span>
             </Link>
           </div>
           
@@ -54,27 +55,28 @@ const Navbar = () => {
             <Link to="/contact" className={`font-medium ${isActive('/contact')}`}>Contact</Link>
             
             {currentUser ? (
-              <div className="relative flex items-center space-x-4">
-                <Link to="/dashboard" className="flex items-center justify-center">
-                  <div className="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center hover:bg-indigo-600 transition-colors">
+              <div className="relative flex items-center space-x-6">
+                <Link 
+                  to="/dashboard" 
+                  className="flex items-center justify-center group"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-rose-500 text-white flex items-center justify-center group-hover:bg-rose-600 transition-all duration-300">
                     {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
                   </div>
                 </Link>
                 <button 
                   onClick={handleLogout}
-                  className="text-gray-600 hover:text-red-500"
+                  className="text-gray-300 hover:text-white transition-colors duration-300"
                 >
                   Logout
                 </button>
               </div>
             ) : (
-              <Link to="/login" className="flex items-center space-x-2">
-                <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-300 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <span className="font-medium">Login</span>
+              <Link 
+                to="/login" 
+                className="flex items-center space-x-3 px-6 py-2.5 bg-rose-500 text-white font-bold rounded-lg hover:bg-rose-600 transition-all duration-300"
+              >
+                <span>Login</span>
               </Link>
             )}
           </div>
@@ -83,7 +85,7 @@ const Navbar = () => {
           <div className="md:hidden flex items-center">
             <button
               onClick={toggleMenu}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none"
+              className="inline-flex items-center justify-center p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 focus:outline-none transition-colors duration-300"
             >
               <svg
                 className="h-6 w-6"
@@ -104,33 +106,26 @@ const Navbar = () => {
       
       {/* Mobile menu */}
       {isMenuOpen && (
-        <div className="md:hidden bg-white pt-2 pb-4 px-4 shadow-lg">
+        <div className="md:hidden bg-black/95 backdrop-blur-sm border-t border-white/10 pt-2 pb-4 px-4">
           <div className="flex flex-col space-y-3">
             <Link 
               to="/" 
-              className={`px-3 py-2 rounded-md text-base font-medium ${isActive('/')}`}
+              className={`px-4 py-2.5 rounded-lg text-base font-medium ${isActive('/')}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Home
             </Link>
             <Link 
               to="/membership" 
-              className={`px-3 py-2 rounded-md text-base font-medium ${isActive('/membership')}`}
+              className={`px-4 py-2.5 rounded-lg text-base font-medium ${isActive('/membership')}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Membership
             </Link>
-            <Link 
-              to="/schedule" 
-              className={`px-3 py-2 rounded-md text-base font-medium ${isActive('/schedule')}`}
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Schedule
-            </Link>
             {currentUser && (
               <Link 
                 to="/trainers" 
-                className={`px-3 py-2 rounded-md text-base font-medium ${isActive('/trainers')}`}
+                className={`px-4 py-2.5 rounded-lg text-base font-medium ${isActive('/trainers')}`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 Trainers
@@ -138,37 +133,37 @@ const Navbar = () => {
             )}
             <Link 
               to="/about" 
-              className={`px-3 py-2 rounded-md text-base font-medium ${isActive('/about')}`}
+              className={`px-4 py-2.5 rounded-lg text-base font-medium ${isActive('/about')}`}
               onClick={() => setIsMenuOpen(false)}
             >
               About Us
             </Link>
             <Link 
               to="/contact" 
-              className={`px-3 py-2 rounded-md text-base font-medium ${isActive('/contact')}`}
+              className={`px-4 py-2.5 rounded-lg text-base font-medium ${isActive('/contact')}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Contact
             </Link>
             
             {currentUser ? (
-              <div className="flex flex-col space-y-2">
+              <div className="flex flex-col space-y-3 pt-3 border-t border-white/10">
                 <Link 
                   to="/dashboard" 
-                  className="flex items-center space-x-2 px-3 py-2"
+                  className="flex items-center space-x-3 px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-300"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  <div className="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-rose-500 text-white flex items-center justify-center">
                     {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
                   </div>
-                  <span>My Profile</span>
+                  <span className="text-white font-medium">My Profile</span>
                 </Link>
                 <button 
                   onClick={() => {
                     handleLogout();
                     setIsMenuOpen(false);
                   }}
-                  className="text-gray-600 hover:text-red-500 font-medium px-3 py-2 text-left"
+                  className="text-left px-4 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 font-medium transition-colors duration-300"
                 >
                   Logout
                 </button>
@@ -176,15 +171,10 @@ const Navbar = () => {
             ) : (
               <Link 
                 to="/login" 
-                className="flex items-center space-x-2 px-3 py-2"
+                className="flex items-center justify-center px-4 py-2.5 bg-rose-500 text-white font-bold rounded-lg hover:bg-rose-600 transition-all duration-300"
                 onClick={() => setIsMenuOpen(false)}
               >
-                <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <span>Login</span>
+                Login
               </Link>
             )}
           </div>

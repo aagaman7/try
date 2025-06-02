@@ -222,7 +222,7 @@ const TrainerPanel = () => {
       key: 'pricePerSession',
       render: (price) => (
         <Tag color="blue" icon={<DollarOutlined />}>
-          ${price}
+          Nrs {price}
         </Tag>
       ),
       sorter: (a, b) => a.pricePerSession - b.pricePerSession,

@@ -62,11 +62,30 @@ export function AuthProvider({ children }) {
     setCurrentUser(updatedUser);
   };
 
+  // Role checking utilities
+  const isAdmin = () => {
+    return currentUser?.role === 'Admin';
+  };
+
+  const isCustomer = () => {
+    return currentUser?.role === 'Member';
+  };
+
+  // Get redirect path based on user role
+  const getRedirectPath = () => {
+    if (isAdmin()) return '/admin';
+    if (isCustomer()) return '/';
+    return '/login';
+  };
+
   const value = {
     currentUser,
     login,
     logout,
     updateUserProfile,
+    isAdmin,
+    isCustomer,
+    getRedirectPath
   };
 
   return (
