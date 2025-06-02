@@ -567,83 +567,83 @@ const UserDashboard = () => {
     );
   }
   
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-100 p-6">
-        <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
-          <div className="text-center text-red-500">
-            <h2 className="text-2xl font-bold mb-4">Error</h2>
-            <p>{error}</p>
-            <button 
-              onClick={fetchDashboardData}
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="min-h-screen bg-gray-100 p-6">
+  //       <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
+  //         <div className="text-center text-red-500">
+  //           <h2 className="text-2xl font-bold mb-4">Error</h2>
+  //           <p>{error}</p>
+  //           <button 
+  //             onClick={fetchDashboardData}
+  //             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+  //           >
+  //             Try Again
+  //           </button>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
   
-  // If no membership found
-  if (!dashboardData || !dashboardData.membershipDetails) {
+  // If no membership found OR failed to load (indicating no membership)
+  if (!loading && (!dashboardData || !dashboardData.membershipDetails || (error && error === 'Failed to load dashboard information'))) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-16 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-black text-white py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto text-center">
           {/* Decorative elements */}
           <div className="mb-8">
             <div className="relative">
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="h-32 w-32 bg-blue-100 rounded-full opacity-50 animate-pulse"></div>
+                <div className="h-32 w-32 bg-white/10 rounded-full opacity-50 animate-pulse"></div>
               </div>
               <div className="relative">
-                <svg className="mx-auto h-24 w-24 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="mx-auto h-24 w-24 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          {/* Main content */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 backdrop-blur-lg bg-opacity-90">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          {/* Main content box */}
+          <div className="bg-black rounded-xl shadow-2xl p-8 md:p-12 border border-white/10 text-white">
+            <h2 className="text-3xl font-bold text-white mb-4">
               Welcome to Your Fitness Journey!
             </h2>
-            <p className="text-xl text-gray-600 mb-8">
+            <p className="text-xl text-gray-300 mb-8">
               You don't have an active membership yet. Start your transformation today by choosing a membership plan that fits your goals.
             </p>
 
             {/* Features grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-              <div className="p-6 bg-blue-50 rounded-xl">
-                <div className="text-blue-600 mb-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 text-gray-300">
+              <div className="p-6 bg-white/5 rounded-xl">
+                <div className="text-rose-500 mb-3">
                   <svg className="h-8 w-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Flexible Plans</h3>
-                <p className="text-gray-600">Choose from various membership options that suit your schedule and budget</p>
+                <h3 className="text-lg font-semibold text-white mb-2">Flexible Plans</h3>
+                <p className="text-gray-400">Choose from various membership options that suit your schedule and budget</p>
               </div>
 
-              <div className="p-6 bg-blue-50 rounded-xl">
-                <div className="text-blue-600 mb-3">
+              <div className="p-6 bg-white/5 rounded-xl">
+                <div className="text-rose-500 mb-3">
                   <svg className="h-8 w-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Expert Trainers</h3>
-                <p className="text-gray-600">Access to certified trainers who will guide you through your fitness journey</p>
+                <h3 className="text-lg font-semibold text-white mb-2">Expert Trainers</h3>
+                <p className="text-gray-400">Access to certified trainers who will guide you through your fitness journey</p>
               </div>
 
-              <div className="p-6 bg-blue-50 rounded-xl">
-                <div className="text-blue-600 mb-3">
+              <div className="p-6 bg-white/5 rounded-xl">
+                <div className="text-rose-500 mb-3">
                   <svg className="h-8 w-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Premium Equipment</h3>
-                <p className="text-gray-600">State-of-the-art facilities and equipment for the best workout experience</p>
+                <h3 className="text-lg font-semibold text-white mb-2">Premium Equipment</h3>
+                <p className="text-gray-400">State-of-the-art facilities and equipment for the best workout experience</p>
               </div>
             </div>
 
@@ -651,14 +651,14 @@ const UserDashboard = () => {
             <div className="flex flex-col items-center space-y-4">
               <button 
                 onClick={() => navigate('/membership')}
-                className="inline-flex items-center px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-xl hover:bg-blue-700 transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="inline-flex items-center px-8 py-4 bg-rose-600 text-white text-lg font-semibold rounded-xl hover:bg-rose-700 transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2"
               >
                 View Membership Plans
                 <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
               </button>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-400">
                 Questions? Contact our support team for assistance
               </p>
             </div>
@@ -667,13 +667,13 @@ const UserDashboard = () => {
           {/* Decorative bottom elements */}
           <div className="mt-12 flex justify-center space-x-6">
             <div className="animate-bounce-slow">
-              <div className="h-3 w-3 bg-blue-400 rounded-full opacity-75"></div>
+              <div className="h-3 w-3 bg-white/30 rounded-full opacity-75"></div>
             </div>
             <div className="animate-bounce-slow delay-75">
-              <div className="h-3 w-3 bg-blue-500 rounded-full opacity-75"></div>
+              <div className="h-3 w-3 bg-white/50 rounded-full opacity-75"></div>
             </div>
             <div className="animate-bounce-slow delay-150">
-              <div className="h-3 w-3 bg-blue-600 rounded-full opacity-75"></div>
+              <div className="h-3 w-3 bg-white/70 rounded-full opacity-75"></div>
             </div>
           </div>
         </div>

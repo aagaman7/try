@@ -68,7 +68,7 @@ exports.createBooking = async (req, res) => {
     // Stripe payment
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(totalPrice * 100), // Convert to cents
-      currency: 'usd',
+      currency: 'npr',
       payment_method_types: ['card']
     });
 

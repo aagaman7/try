@@ -621,13 +621,13 @@ const TrainerPanel = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         ) : Object.keys(availableSlots).length === 0 ? (
-          <div className="text-center py-8 bg-gray-50 rounded-lg dark:bg-gray-800">
-            <p className="text-gray-600 dark:text-gray-400">No available slots found.</p>
+          <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-blue-800">No available slots found.</p>
           </div>
         ) : (
           <div className="space-y-6">
             {selectedTrainerSlots && (
-              <div className="bg-black rounded-2xl shadow-xl p-6 mb-6">
+              <div className="bg-blue-600 text-white rounded-2xl shadow-xl p-6 mb-6">
                 <div className="flex items-center space-x-4">
                   <Avatar 
                     src={selectedTrainerSlots.image} 
@@ -638,9 +638,9 @@ const TrainerPanel = () => {
                   <div>
                     <h2 className="text-2xl font-bold text-white">{selectedTrainerSlots.name}</h2>
                     <div className="flex items-center space-x-2 mt-1">
-                      <StarOutlined className="text-rose-500" />
+                      <StarOutlined className="text-yellow-400" />
                       <span className="text-white">{selectedTrainerSlots.averageRating.toFixed(1)}</span>
-                      <span className="text-gray-400">({selectedTrainerSlots.totalRatings})</span>
+                      <span className="text-blue-200">({selectedTrainerSlots.totalRatings})</span>
                     </div>
                   </div>
                 </div>
@@ -648,16 +648,16 @@ const TrainerPanel = () => {
             )}
             
             {Object.entries(availableSlots).map(([date, slots]) => (
-              <div key={date} className="bg-black rounded-2xl shadow-xl p-6">
-                <h3 className="text-xl font-bold text-white mb-4">{date}</h3>
+              <div key={date} className="bg-white rounded-xl shadow p-6 border border-gray-200">
+                <h3 className="text-xl font-bold text-gray-800 mb-4">{date}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {slots.map((slot, idx) => (
                     <div
                       key={idx}
-                      className="flex flex-col items-center justify-center p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all duration-300"
+                      className="flex flex-col items-center justify-center p-4 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-all duration-300 cursor-pointer"
                     >
-                      <ClockCircleOutlined className="text-rose-500 text-xl mb-2" />
-                      <span className="font-medium text-white">
+                      <ClockCircleOutlined className="text-blue-600 text-xl mb-2" />
+                      <span className="font-medium text-blue-800">
                         {slot.startTime} - {slot.endTime}
                       </span>
                     </div>

@@ -13,7 +13,7 @@ const StarRating = ({ rating, setRating, editable }) => (
         disabled={!editable}
       >
         <StarIcon
-          className={`h-5 w-5 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+          className={`h-5 w-5 ${star <= rating ? 'text-yellow-400' : 'text-gray-600'}`}
         />
       </button>
     ))}
@@ -99,13 +99,13 @@ const TrainerReview = ({ trainerId, reviews, user, onReviewAdded, onReviewEdited
   };
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">Reviews</h2>
-      {error && <div className="text-red-600 text-sm">{error}</div>}
+    <div className="space-y-6 text-white">
+      <h2 className="text-2xl font-bold text-white mb-4">Reviews</h2>
+      {error && <div className="text-rose-500 text-sm">{error}</div>}
       {/* Add Review Button */}
       {user && hasMembership && !userReview && !showAddForm && (
         <button
-          className="mb-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="mb-4 bg-rose-600 text-white px-4 py-2 rounded-xl hover:bg-rose-700 transition-all duration-300"
           onClick={() => setShowAddForm(true)}
         >
           Add Review
@@ -113,9 +113,9 @@ const TrainerReview = ({ trainerId, reviews, user, onReviewAdded, onReviewEdited
       )}
       {/* Add Review Form */}
       {user && hasMembership && !userReview && showAddForm && (
-        <form onSubmit={handleSubmit} className="mb-6 space-y-2">
+        <form onSubmit={handleSubmit} className="mb-6 space-y-4 p-6 bg-white/5 rounded-xl border border-white/10">
           <div className="flex items-center">
-            <span className="mr-2 font-medium">Your Rating:</span>
+            <span className="mr-2 font-medium text-gray-300">Your Rating:</span>
             <StarRating rating={form.rating} setRating={r => setForm(f => ({ ...f, rating: r }))} editable />
           </div>
           <textarea
@@ -123,14 +123,14 @@ const TrainerReview = ({ trainerId, reviews, user, onReviewAdded, onReviewEdited
             value={form.review}
             onChange={handleChange}
             placeholder="Write your review..."
-            className="w-full p-2 border rounded"
+            className="w-full p-3 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-rose-500 placeholder-gray-500"
             required
           />
-          <div className="flex gap-2">
-            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded" disabled={loading || !form.rating}>
+          <div className="flex gap-4">
+            <button type="submit" className="bg-rose-600 text-white px-4 py-2 rounded-xl hover:bg-rose-700 transition-all duration-300 disabled:opacity-50" disabled={loading || !form.rating}>
               {loading ? 'Submitting...' : 'Submit Review'}
             </button>
-            <button type="button" className="bg-gray-300 px-4 py-2 rounded" onClick={() => setShowAddForm(false)} disabled={loading}>
+            <button type="button" className="bg-gray-700 text-white px-4 py-2 rounded-xl hover:bg-gray-600 transition-all duration-300" onClick={() => setShowAddForm(false)} disabled={loading}>
               Cancel
             </button>
           </div>
@@ -138,13 +138,13 @@ const TrainerReview = ({ trainerId, reviews, user, onReviewAdded, onReviewEdited
       )}
       {/* Reviews List */}
       <div className="space-y-4">
-        {reviews.length === 0 && <div className="text-gray-600">No reviews yet.</div>}
+        {reviews.length === 0 && <div className="text-gray-500">No reviews yet.</div>}
         {reviews.map((r) => (
-          <div key={r._id} className="bg-white p-4 rounded shadow flex flex-col">
-            <div className="flex items-center mb-1">
+          <div key={r._id} className="bg-white/5 p-4 rounded-xl shadow border border-white/10 flex flex-col">
+            <div className="flex items-center mb-2">
               <StarRating rating={r.rating} editable={false} />
-              <span className="ml-2 text-gray-700 font-medium">{r.user?.name || 'User'}</span>
-              <span className="ml-2 text-gray-400 text-xs">{new Date(r.createdAt).toLocaleDateString()}</span>
+              <span className="ml-2 text-white font-medium">{r.user?.name || 'User'}</span>
+              <span className="ml-auto text-gray-400 text-xs">{new Date(r.createdAt).toLocaleDateString()}</span>
             </div>
             {editingId === r._id ? (
               <form onSubmit={e => handleEditSubmit(e, r._id)} className="space-y-2 mt-2">
@@ -153,21 +153,21 @@ const TrainerReview = ({ trainerId, reviews, user, onReviewAdded, onReviewEdited
                   name="review"
                   value={editForm.review}
                   onChange={handleEditChange}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-3 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-rose-500 placeholder-gray-500"
                   required
                 />
-                <div className="flex gap-2">
-                  <button type="submit" className="bg-green-600 text-white px-3 py-1 rounded" disabled={loading || !editForm.rating}>Save</button>
-                  <button type="button" className="bg-gray-300 px-3 py-1 rounded" onClick={() => setEditingId(null)}>Cancel</button>
+                <div className="flex gap-4">
+                  <button type="submit" className="bg-green-600 text-white px-3 py-1 rounded-xl hover:bg-green-700 transition-all duration-300 disabled:opacity-50" disabled={loading || !editForm.rating}>Save</button>
+                  <button type="button" className="bg-gray-700 text-white px-3 py-1 rounded-xl hover:bg-gray-600 transition-all duration-300" onClick={() => setEditingId(null)}>Cancel</button>
                 </div>
               </form>
             ) : (
               <>
-                <p className="text-gray-700 mt-1">{r.review}</p>
+                <p className="text-gray-300 mt-1">{r.review}</p>
                 {user && r.user && (r.user._id === user._id || r.user._id === user.id) && (
                   <div className="flex gap-2 mt-2">
-                    <button className="text-blue-600 underline" onClick={() => handleEdit(r)}>Edit</button>
-                    <button className="text-red-600 underline" onClick={() => handleDelete(r._id)}>Delete</button>
+                    <button className="text-rose-500 underline hover:text-rose-600 transition-colors" onClick={() => handleEdit(r)}>Edit</button>
+                    <button className="text-red-500 underline hover:text-red-600 transition-colors" onClick={() => handleDelete(r._id)}>Delete</button>
                   </div>
                 )}
               </>

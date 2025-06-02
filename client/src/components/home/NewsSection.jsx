@@ -148,12 +148,14 @@ const NewsSection = () => {
                 </p>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500 text-sm">{formatDate(item.publishedAt)}</span>
-                  <Link
-                    to="/blog"
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-black font-bold hover:text-gray-700 transition-colors duration-300"
                   >
                     Read More →
-                  </Link>
+                  </a>
                 </div>
               </div>
             </article>

@@ -49,7 +49,7 @@ const TrainerList = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"></div>
       </div>
     );
@@ -57,12 +57,13 @@ const TrainerList = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-rose-600 text-center">
-          <p className="text-xl font-bold">{error}</p>
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="text-rose-600 text-center p-8 bg-black rounded-xl shadow-xl border border-white/10">
+          <div className="text-rose-500 text-5xl mb-4">⚠️</div>
+          <p className="text-xl font-bold text-white mb-4">{error}</p>
           <button
             onClick={fetchTrainers}
-            className="mt-4 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-900 transition-all duration-300"
+            className="mt-4 px-6 py-3 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-all duration-300"
           >
             Retry
           </button>
@@ -81,20 +82,20 @@ const TrainerList = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#fafafa] py-16 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-black text-white py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-black text-black mb-4">
+          <h1 className="text-4xl font-black text-white mb-4">
             Meet Our Expert Trainers
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-300 max-w-2xl mx-auto">
             Find the perfect trainer to help you achieve your fitness goals. Filter by specialization, rating, and price to find your ideal match.
           </p>
         </div>
       
         {/* Filters Section */}
-        <div className="bg-black rounded-2xl shadow-xl p-8 mb-16">
+        <div className="bg-white/5 rounded-2xl shadow-xl p-8 mb-16 border border-white/10">
           <h2 className="text-lg font-bold text-white mb-6">Filter Trainers</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-2">
@@ -180,8 +181,8 @@ const TrainerList = () => {
             {filteredTrainers.length === 0 && (
               <div className="text-center py-16">
                 <div className="text-4xl mb-4">🔍</div>
-                <p className="text-xl font-bold text-gray-800 mb-2">No trainers found</p>
-                <p className="text-gray-600">
+                <p className="text-xl font-bold text-white mb-2">No trainers found</p>
+                <p className="text-gray-400">
                   Try adjusting your filters to find more trainers
                 </p>
               </div>
