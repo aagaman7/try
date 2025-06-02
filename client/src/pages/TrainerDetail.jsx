@@ -48,7 +48,7 @@ const BookingForm = ({ trainer, onSuccess }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [selectedSlot, setSelectedSlot] = useState(null);
-  const [availableSlots, setAvailableSlots] = useState([]);
+  const [availableSlots, setAvailableSlots] = useState({});
   const [loading, setLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -63,26 +63,26 @@ const BookingForm = ({ trainer, onSuccess }) => {
   const fetchAvailableSlots = async () => {
     try {
       setLoading(true);
-      // Get next 7 days slots
-      const today = new Date();
-      const slots = await Promise.all(
-        Array.from({ length: 7 }, (_, i) => {
-          const date = new Date(today);
-          date.setDate(today.getDate() + i);
-          return apiService.getTrainerAvailableSlots(trainer._id, date.toISOString().split('T')[0]);
-        })
-      );
+      const slots = await apiService.getTrainerAvailableSlots(trainer._id);
       
-      // Flatten and format slots with dates
-      const formattedSlots = slots.flat().map((slot, index) => ({
-        ...slot,
-        date: new Date(new Date().setDate(new Date().getDate() + Math.floor(index / trainer.availability.length))),
-      }));
+      const groupedSlots = slots.reduce((acc, slot) => {
+        const slotDate = new Date(slot.date);
+        const dateKey = slotDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        
+        if (!acc[dateKey]) {
+          acc[dateKey] = [];
+        }
+        // Store the Date object along with other slot details
+        acc[dateKey].push({ ...slot, dateObj: slotDate });
+        return acc;
+      }, {});
       
-      setAvailableSlots(formattedSlots);
+      
+      setAvailableSlots(groupedSlots);
       setError(null);
     } catch (err) {
-      setError('Failed to fetch available slots.');
+      setError(err.message || 'Failed to fetch available slots.');
+      setAvailableSlots({});
     } finally {
       setLoading(false);
     }
@@ -98,7 +98,8 @@ const BookingForm = ({ trainer, onSuccess }) => {
     try {
       const bookingData = {
         trainerId: trainer._id,
-        bookingDate: selectedSlot.date.toISOString().split('T')[0],
+        // Use the original date string from the slot for the backend
+        bookingDate: selectedSlot.date,
         startTime: selectedSlot.startTime,
         endTime: selectedSlot.endTime,
       };
@@ -172,143 +173,135 @@ const BookingForm = ({ trainer, onSuccess }) => {
     }
   };
 
-  if (!clientSecret) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            </div>
-          ) : availableSlots.length === 0 ? (
-            <div className="text-center py-8 bg-gray-50 rounded-lg">
-              <p className="text-gray-600">No available slots for the next 7 days.</p>
-            </div>
-          ) : (
+  // Render the available slots grouped by date
+  return (
+    <div className="space-y-6">
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : Object.keys(availableSlots).length === 0 ? (
+        <div className="text-center py-8 bg-gray-50 rounded-lg dark:bg-gray-800">
+          <p className="text-gray-600 dark:text-gray-400">No available slots found.</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {!clientSecret && (
             <div className="grid grid-cols-1 gap-4">
-              {availableSlots.map((slot, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setSelectedSlot(slot)}
-                  className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
-                    selectedSlot === slot
-                      ? 'border-blue-500 bg-blue-50 shadow-sm'
-                      : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-blue-100">
-                      <span className="text-blue-600 font-semibold">
-                        {slot.date.toLocaleDateString('en-US', { weekday: 'short' })}
-                      </span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-medium text-gray-900">
-                        {slot.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        {slot.startTime} - {slot.endTime}
-                      </span>
-                    </div>
+              {Object.entries(availableSlots).map(([date, slots]) => (
+                <div key={date} className="space-y-3">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{date}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {slots.map((slot, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedSlot(slot)}
+                        className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${
+                          selectedSlot && selectedSlot.date === slot.date && selectedSlot.startTime === slot.startTime
+                            ? 'border-blue-500 bg-blue-50 shadow-sm dark:bg-blue-900/30 dark:border-blue-700'
+                            : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:border-blue-600 dark:hover:bg-gray-800 dark:bg-gray-900'
+                        }`}
+                      >
+                        <span className={`font-medium ${selectedSlot && selectedSlot.date === slot.date && selectedSlot.startTime === slot.startTime ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}>
+                          {slot.startTime} - {slot.endTime}
+                        </span>
+                      </button>
+                    ))}
                   </div>
-                  {selectedSlot === slot && (
-                    <span className="flex-shrink-0">
-                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </span>
-                  )}
-                </button>
+                </div>
               ))}
             </div>
           )}
-        </div>
-        
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-sm">{error}</p>
-          </div>
-        )}
-        
-        <button
-          onClick={handleBooking}
-          disabled={!selectedSlot || loading}
-          className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {loading ? (
-            <span className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-              </svg>
-              Processing...
-            </span>
-          ) : (
-            'Book Selected Slot'
+
+          {clientSecret && selectedSlot && (
+            <div className="space-y-6">
+              <div className="bg-gray-50 p-4 rounded-lg dark:bg-gray-800">
+                <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Selected Slot</h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {selectedSlot.dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  <br />
+                  {selectedSlot.startTime} - {selectedSlot.endTime}
+                </p>
+              </div>
+
+               <div className="space-y-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Payment Details</label>
+                  <div className="p-4 border border-gray-200 rounded-lg dark:border-gray-700">
+                    <CardElement
+                      options={{
+                        style: {
+                          base: {
+                            fontSize: '16px',
+                            color: '#424770',
+                            ':': { color: '#aab7c4' },
+                          },
+                          invalid: { color: '#9e2146' },
+                        },
+                      }}
+                    />
+                  </div>
+                </div>
+
+                 {error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/30 dark:border-red-700">
+                    <p className="text-red-600 text-sm dark:text-red-300">{error}</p>
+                  </div>
+                )}
+
+                {success && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-900/30 dark:border-green-700">
+                    <p className="text-green-600 text-sm dark:text-green-300">{success}</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={handlePayment}
+                  disabled={!stripe || isProcessing}
+                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-blue-700 dark:hover:bg-blue-800"
+                >
+                  {isProcessing ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                      </svg>
+                      Processing Payment...
+                    </span>
+                  ) : (
+                    'Confirm Payment'
+                  )}
+                </button>
+            </div>
           )}
-        </button>
-      </div>
-    );
-  }
 
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h3 className="font-medium text-gray-900 mb-2">Selected Slot</h3>
-        <p className="text-gray-600">
-          {selectedSlot.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          <br />
-          {selectedSlot.startTime} - {selectedSlot.endTime}
-        </p>
-      </div>
-      
-      <div className="space-y-4">
-        <label className="block text-sm font-medium text-gray-700">Payment Details</label>
-        <div className="p-4 border border-gray-200 rounded-lg">
-          <CardElement
-            options={{
-              style: {
-                base: {
-                  fontSize: '16px',
-                  color: '#424770',
-                  '::placeholder': { color: '#aab7c4' },
-                },
-                invalid: { color: '#9e2146' },
-              },
-            }}
-          />
-        </div>
-      </div>
-
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-600 text-sm">{error}</p>
-        </div>
-      )}
-      
-      {success && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-green-600 text-sm">{success}</p>
+           {/* Move the booking button outside the clientSecret block */} 
+          {!clientSecret && Object.keys(availableSlots).length > 0 && !loading && selectedSlot && (
+            <button
+              onClick={handleBooking}
+              disabled={!selectedSlot || loading}
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-blue-700 dark:hover:bg-blue-800"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                'Book Selected Slot'
+              )}
+            </button>
+          )}
         </div>
       )}
 
-      <button
-        onClick={handlePayment}
-        disabled={!stripe || isProcessing}
-        className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {isProcessing ? (
-          <span className="flex items-center justify-center">
-            <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-            </svg>
-            Processing Payment...
-          </span>
-        ) : (
-          'Confirm Payment'
-        )}
-      </button>
+       {error && !clientSecret && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/30 dark:border-red-700">
+          <p className="text-red-600 text-sm dark:text-red-300">{error}</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -354,12 +347,18 @@ const TrainerDetail = () => {
 
   const handleReviewAdded = (newReview) => {
     setReviews(prev => [newReview, ...prev]);
+    // Optionally update trainer average rating if backend doesn't return updated trainer object
+    // fetchTrainerDetails(); 
   };
   const handleReviewEdited = (updatedReview) => {
     setReviews(prev => prev.map(r => r._id === updatedReview._id ? updatedReview : r));
+    // Optionally update trainer average rating if backend doesn't return updated trainer object
+    // fetchTrainerDetails();
   };
   const handleReviewDeleted = (reviewId) => {
     setReviews(prev => prev.filter(r => r._id !== reviewId));
+    // Optionally update trainer average rating if backend doesn't return updated trainer object
+    // fetchTrainerDetails();
   };
 
   if (loading) {
@@ -389,9 +388,9 @@ const TrainerDetail = () => {
   return (
     <div className="min-h-screen bg-[#fafafa] py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Trainer Info - Left Column */}
-              <div className="lg:col-span-2 space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Trainer Info - Left Column */}
+          <div className="lg:col-span-2 space-y-8">
             <div className="bg-black rounded-2xl shadow-xl overflow-hidden">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-8">
                 {/* Trainer Photo */}
@@ -435,149 +434,58 @@ const TrainerDetail = () => {
                     </div>
                   </div>
                 </div>
-                      </div>
-                      
-              {/* Additional Info */}
-              <div className="border-t border-white/10 p-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
-                    <h2 className="text-xl font-bold text-white mb-3">Qualifications</h2>
-                    <ul className="list-disc list-inside text-gray-300">
-                        {trainer.qualifications.map((qual, index) => (
-                        <li key={index} className="mb-2">{qual}</li>
-                        ))}
-                      </ul>
-                  </div>
-                      
-                  <div>
-                    <h2 className="text-xl font-bold text-white mb-3">Regular Schedule</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {trainer.availability.map((slot, index) => (
+              </div>
+            </div>
+            
+            {/* Update the Regular Schedule section */}
+            <div className="bg-black rounded-2xl shadow-xl p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-3">Qualifications</h2>
+                  <ul className="list-disc list-inside text-gray-300">
+                    {trainer.qualifications.map((qual, index) => (
+                      <li key={index} className="mb-2">{qual}</li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-3">Upcoming Availability</h2>
+                  <div className="grid grid-cols-1 gap-4">
+                    {trainer.availability
+                      .filter(slot => new Date(slot.date) >= new Date())
+                      .sort((a, b) => new Date(a.date) - new Date(b.date))
+                      .slice(0, 5)
+                      .map((slot, index) => (
                         <div key={index} className="bg-white/10 p-4 rounded-xl border border-white/10">
-                          <p className="font-bold text-white">{slot.day}</p>
-                          <p className="text-gray-400 text-sm">{slot.startTime} - {slot.endTime}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                          <p className="font-bold text-white">
+                            {new Date(slot.date).toLocaleDateString('en-US', { 
+                              weekday: 'long',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </p>
+                          <p className="text-gray-400 text-sm">
+                            {slot.startTime} - {slot.endTime}
+                          </p>
+                        </div>
+                      ))}
                   </div>
                 </div>
               </div>
+            </div>
 
             {/* Reviews Section */}
             <div className="bg-black rounded-2xl shadow-xl p-8">
-              <div className="mb-8">
-                <h2 className="text-2xl font-black text-white mb-4">Client Reviews</h2>
-                {user ? (
-                  <div className="bg-white/10 rounded-xl p-6 border border-white/10 mb-8">
-                    <h3 className="text-lg font-bold text-white mb-4">Leave a Review</h3>
-                    <form onSubmit={(e) => {
-                      e.preventDefault();
-                      const comment = e.target.comment.value;
-                      if (rating && comment) {
-                        apiService.createTrainerReview({
-                          trainerId: trainer._id,
-                          rating: Number(rating),
-                          comment
-                        })
-                        .then(newReview => {
-                          handleReviewAdded(newReview);
-                          e.target.reset();
-                          setRating(0);
-                          toast.success('Review submitted successfully!');
-                        })
-                        .catch(err => {
-                          toast.error(err.message || 'Failed to submit review');
-                        });
-                      } else {
-                        toast.error('Please provide both rating and comment');
-                      }
-                    }}>
-                      <div className="mb-6">
-                        <label className="block text-gray-300 mb-2">Rating</label>
-                        <div className="flex items-center space-x-2">
-                          <StarRating rating={rating} setRating={setRating} />
-                          {rating > 0 && (
-                            <span className="text-gray-300 ml-2">({rating} star{rating !== 1 ? 's' : ''})</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="mb-6">
-                        <label className="block text-gray-300 mb-2">Your Review</label>
-                        <textarea 
-                          name="comment"
-                          required
-                          rows="4"
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-rose-500"
-                          placeholder="Share your experience with this trainer..."
-                        ></textarea>
-                      </div>
-                      <button 
-                        type="submit"
-                        disabled={!rating}
-                        className={`w-full py-3 px-6 rounded-xl font-bold transition-all duration-300 ${
-                          rating 
-                            ? 'bg-rose-500 hover:bg-rose-600 text-white' 
-                            : 'bg-gray-600 cursor-not-allowed text-gray-300'
-                        }`}
-                      >
-                        Submit Review
-                      </button>
-                    </form>
-                  </div>
-                ) : (
-                  <div className="text-center bg-white/10 rounded-xl p-6 border border-white/10 mb-8">
-                    <p className="text-gray-300 mb-4">Please log in to leave a review</p>
-                    <button
-                      onClick={() => navigate('/login')}
-                      className="bg-rose-500 text-white py-2 px-6 rounded-xl font-bold hover:bg-rose-600 transition-all duration-300"
-                    >
-                      Log In
-                    </button>
-                  </div>
-                )}
-                
-                <div className="space-y-6">
-                  {reviews.map((review, index) => (
-                    <div key={index} className="bg-white/10 rounded-xl p-6 border border-white/10">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-2">
-                          <div className="h-10 w-10 rounded-full bg-rose-500/10 flex items-center justify-center">
-                            <User className="h-6 w-6 text-rose-500" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-white">{review.userName || 'Anonymous'}</p>
-                            <p className="text-sm text-gray-400">{new Date(review.createdAt).toLocaleDateString()}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center">
-                          <Star className="h-5 w-5 text-rose-500" />
-                          <span className="ml-1 text-white font-bold">{review.rating}</span>
-                        </div>
-                      </div>
-                      <p className="text-gray-300">{review.comment}</p>
-                      
-                      {user && user._id === review.userId && (
-                        <div className="mt-4 flex justify-end space-x-4">
-                          <button
-                            onClick={() => {
-                              apiService.deleteTrainerReview(review._id)
-                                .then(() => {
-                                  handleReviewDeleted(review._id);
-                                  toast.success('Review deleted successfully');
-                                })
-                                .catch(err => toast.error(err.message));
-                            }}
-                            className="text-rose-500 hover:text-rose-400 text-sm font-medium"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* Use the TrainerReview component */} 
+              <TrainerReview 
+                trainerId={trainer._id} 
+                reviews={reviews} 
+                user={user} 
+                onReviewAdded={handleReviewAdded}
+                onReviewEdited={handleReviewEdited}
+                onReviewDeleted={handleReviewDeleted}
+              />
             </div>
           </div>
 
@@ -589,24 +497,24 @@ const TrainerDetail = () => {
                 <div className="flex items-center justify-between p-4 bg-white/10 rounded-xl border border-white/10 mb-6">
                   <span className="text-gray-300">Price per session</span>
                   <span className="text-2xl font-black text-rose-500">Nrs {trainer.pricePerSession}</span>
-                    </div>
-                  </div>
-                  
-                  {showBookingForm ? (
-                    <Elements stripe={stripePromise}>
-                      <BookingForm trainer={trainer} onSuccess={fetchTrainerDetails} />
-                    </Elements>
-                  ) : (
-                    <button
-                      onClick={() => setShowBookingForm(true)}
-                  className="w-full bg-rose-500 text-white py-4 px-6 rounded-xl font-bold hover:bg-rose-600 transition-all duration-300 shadow-lg hover:shadow-xl"
-                    >
-                      View Available Slots
-                    </button>
-                  )}
                 </div>
               </div>
+              
+              {showBookingForm ? (
+                <Elements stripe={stripePromise}>
+                  <BookingForm trainer={trainer} onSuccess={fetchTrainerDetails} />
+                </Elements>
+              ) : (
+                <button
+                  onClick={() => setShowBookingForm(true)}
+                  className="w-full bg-rose-500 text-white py-4 px-6 rounded-xl font-bold hover:bg-rose-600 transition-all duration-300 shadow-lg hover:shadow-xl"
+                >
+                  View Available Slots
+                </button>
+              )}
             </div>
+          </div>
+        </div>
       </div>
       <ToastContainer
         position="top-right"

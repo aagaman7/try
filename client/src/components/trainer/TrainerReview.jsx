@@ -28,8 +28,16 @@ const TrainerReview = ({ trainerId, reviews, user, onReviewAdded, onReviewEdited
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
 
-  const userReview = user && reviews.find(r => r.user && r.user._id === user._id);
-  const hasMembership = user && user.currentMembership;
+  const userReview = user && reviews.find(r => r.user && (r.user._id === user._id || r.user._id === user.id));
+  const hasMembership = !!user;
+
+  // console.log('Debug Review Component:', {
+  //   user,
+  //   hasMembership,
+  //   userReview,
+  //   showAddForm,
+  //   reviews
+  // });
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });

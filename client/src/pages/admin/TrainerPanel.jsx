@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { 
   Card, Table, Button, Space, Tag, Modal, Form, 
   Input, Select, Switch, message, Tooltip, Popconfirm,
-  Upload, TimePicker, Avatar, InputNumber, List
+  Upload, TimePicker, Avatar, InputNumber, List, DatePicker
 } from 'antd';
 import { 
   PlusOutlined, EditOutlined, DeleteOutlined, 
   CheckCircleOutlined, CloseCircleOutlined,
   UserOutlined, UploadOutlined, PhoneOutlined,
   MailOutlined, TrophyOutlined, CalendarOutlined,
-  DollarOutlined, LoadingOutlined, StarOutlined
+  DollarOutlined, LoadingOutlined, StarOutlined,
+  ClockCircleOutlined
 } from '@ant-design/icons';
 import apiService from '../../services/apiService';
 import dayjs from 'dayjs';
@@ -30,12 +31,10 @@ const TrainerPanel = () => {
   const [uploading, setUploading] = useState(false);
   const [bookings, setBookings] = useState([]);
   const [showBookings, setShowBookings] = useState(false);
-
-  // Days of the week for availability
-  const daysOfWeek = [
-    'Monday', 'Tuesday', 'Wednesday', 'Thursday',
-    'Friday', 'Saturday', 'Sunday'
-  ];
+  const [showSlots, setShowSlots] = useState(false);
+  const [selectedTrainerSlots, setSelectedTrainerSlots] = useState(null);
+  const [availableSlots, setAvailableSlots] = useState({});
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   // Fetch trainers on component mount
   useEffect(() => {
@@ -95,7 +94,7 @@ const TrainerPanel = () => {
     form.resetFields();
     form.setFieldsValue({
       isActive: true,
-      availability: [{ day: 'Monday', startTime: null, endTime: null }]
+      availability: [{ date: null, startTime: null, endTime: null }]
     });
     setModalVisible(true);
   };
@@ -105,11 +104,12 @@ const TrainerPanel = () => {
     setIsEditing(true);
     setCurrentTrainer(trainer);
     setImageUrl(trainer.image);
-    setImageFile(null); // User must re-upload if changing image
+    setImageFile(null);
     
-    // Convert availability times to dayjs objects for TimePicker
+    // Convert availability times to dayjs objects for TimePicker and DatePicker
     const formattedAvailability = trainer.availability?.map(slot => ({
       ...slot,
+      date: slot.date ? dayjs(slot.date) : null,
       startTime: slot.startTime ? dayjs(slot.startTime, 'HH:mm') : null,
       endTime: slot.endTime ? dayjs(slot.endTime, 'HH:mm') : null
     })) || [];
@@ -143,12 +143,13 @@ const TrainerPanel = () => {
     try {
       const values = await form.validateFields();
       setLoading(true);
-      // Format availability times
+      // Format availability times and dates
       const formattedAvailability = values.availability?.map(slot => ({
-        day: slot.day,
+        date: slot.date?.format('YYYY-MM-DD'),
         startTime: slot.startTime?.format('HH:mm'),
         endTime: slot.endTime?.format('HH:mm')
-      })).filter(slot => slot.day && slot.startTime && slot.endTime);
+      })).filter(slot => slot.date && slot.startTime && slot.endTime);
+
       const trainerData = {
         ...values,
         image: imageFile,
@@ -156,6 +157,7 @@ const TrainerPanel = () => {
         qualifications: JSON.stringify(values.qualifications || []),
         specializations: JSON.stringify(values.specializations || [])
       };
+
       if (isEditing) {
         await apiService.adminUpdateTrainer(currentTrainer._id, trainerData);
         message.success('Trainer updated successfully.');
@@ -183,6 +185,33 @@ const TrainerPanel = () => {
       setShowBookings(true);
     } catch (error) {
       message.error('Failed to fetch trainer bookings.');
+    }
+  };
+
+  // Add this new function after handleViewBookings
+  const handleViewSlots = async (trainer) => {
+    try {
+      setLoadingSlots(true);
+      setSelectedTrainerSlots(trainer);
+      const slots = await apiService.getTrainerAvailableSlots(trainer._id);
+      
+      const groupedSlots = slots.reduce((acc, slot) => {
+        const slotDate = new Date(slot.date);
+        const dateKey = slotDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        
+        if (!acc[dateKey]) {
+          acc[dateKey] = [];
+        }
+        acc[dateKey].push({ ...slot, dateObj: slotDate });
+        return acc;
+      }, {});
+      
+      setAvailableSlots(groupedSlots);
+      setShowSlots(true);
+    } catch (err) {
+      message.error('Failed to fetch trainer slots.');
+    } finally {
+      setLoadingSlots(false);
     }
   };
 
@@ -247,6 +276,14 @@ const TrainerPanel = () => {
       key: 'actions',
       render: (_, record) => (
         <Space>
+          <Tooltip title="View Slots">
+            <Button
+              type="primary"
+              onClick={() => handleViewSlots(record)}
+            >
+              Slots
+            </Button>
+          </Tooltip>
           <Tooltip title="View Bookings">
             <Button
               type="primary"
@@ -447,7 +484,7 @@ const TrainerPanel = () => {
               <Button type="dashed" onClick={() => {
                 const availability = form.getFieldValue('availability') || [];
                 form.setFieldsValue({
-                  availability: [...availability, { day: undefined, startTime: null, endTime: null }]
+                  availability: [...availability, { date: null, startTime: null, endTime: null }]
                 });
               }} icon={<PlusOutlined />}>
                 Add Time Slot
@@ -460,21 +497,25 @@ const TrainerPanel = () => {
                   {fields.map((field, index) => (
                     <div key={field.key} className="flex items-center gap-4 bg-gray-50 p-4 rounded">
                       <Form.Item
-                        name={[field.name, 'day']}
-                        label="Day"
+                        name={[field.name, 'date']}
+                        label="Date"
                         className="mb-0 flex-1"
+                        rules={[{ required: true, message: 'Please select a date' }]}
                       >
-                        <Select placeholder="Select day">
-                          {daysOfWeek.map(day => (
-                            <Option key={day} value={day}>{day}</Option>
-                          ))}
-                        </Select>
+                        <DatePicker 
+                          className="w-full" 
+                          format="YYYY-MM-DD"
+                          disabledDate={(current) => {
+                            return current && current < dayjs().startOf('day');
+                          }}
+                        />
                       </Form.Item>
 
                       <Form.Item
                         name={[field.name, 'startTime']}
                         label="Start Time"
                         className="mb-0 flex-1"
+                        rules={[{ required: true, message: 'Please select start time' }]}
                       >
                         <TimePicker format="HH:mm" className="w-full" />
                       </Form.Item>
@@ -483,6 +524,7 @@ const TrainerPanel = () => {
                         name={[field.name, 'endTime']}
                         label="End Time"
                         className="mb-0 flex-1"
+                        rules={[{ required: true, message: 'Please select end time' }]}
                       >
                         <TimePicker format="HH:mm" className="w-full" />
                       </Form.Item>
@@ -555,6 +597,76 @@ const TrainerPanel = () => {
             </List.Item>
           )}
         />
+      </Modal>
+
+      {/* Slots Modal */}
+      <Modal
+        title={
+          <Space>
+            <CalendarOutlined />
+            <span>Trainer Available Slots</span>
+          </Space>
+        }
+        open={showSlots}
+        onCancel={() => {
+          setShowSlots(false);
+          setAvailableSlots({});
+        }}
+        width={800}
+        footer={null}
+        className="trainer-slots-modal"
+      >
+        {loadingSlots ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : Object.keys(availableSlots).length === 0 ? (
+          <div className="text-center py-8 bg-gray-50 rounded-lg dark:bg-gray-800">
+            <p className="text-gray-600 dark:text-gray-400">No available slots found.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {selectedTrainerSlots && (
+              <div className="bg-black rounded-2xl shadow-xl p-6 mb-6">
+                <div className="flex items-center space-x-4">
+                  <Avatar 
+                    src={selectedTrainerSlots.image} 
+                    icon={<UserOutlined />} 
+                    size={64}
+                    className="border-2 border-white"
+                  />
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">{selectedTrainerSlots.name}</h2>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <StarOutlined className="text-rose-500" />
+                      <span className="text-white">{selectedTrainerSlots.averageRating.toFixed(1)}</span>
+                      <span className="text-gray-400">({selectedTrainerSlots.totalRatings})</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {Object.entries(availableSlots).map(([date, slots]) => (
+              <div key={date} className="bg-black rounded-2xl shadow-xl p-6">
+                <h3 className="text-xl font-bold text-white mb-4">{date}</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {slots.map((slot, idx) => (
+                    <div
+                      key={idx}
+                      className="flex flex-col items-center justify-center p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all duration-300"
+                    >
+                      <ClockCircleOutlined className="text-rose-500 text-xl mb-2" />
+                      <span className="font-medium text-white">
+                        {slot.startTime} - {slot.endTime}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Modal>
     </Card>
   );

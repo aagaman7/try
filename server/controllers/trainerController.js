@@ -18,6 +18,12 @@ exports.createTrainer = async (req, res) => {
     if (typeof qualifications === 'string') qualifications = JSON.parse(qualifications);
     if (typeof specializations === 'string') specializations = JSON.parse(specializations);
 
+    // Convert date strings to Date objects in availability
+    availability = availability.map(slot => ({
+      ...slot,
+      date: new Date(slot.date)
+    }));
+
     if (!req.file) {
       return res.status(400).json({ message: "Image file is required" });
     }
@@ -51,6 +57,14 @@ exports.updateTrainer = async (req, res) => {
     if (typeof updates.availability === 'string') updates.availability = JSON.parse(updates.availability);
     if (typeof updates.qualifications === 'string') updates.qualifications = JSON.parse(updates.qualifications);
     if (typeof updates.specializations === 'string') updates.specializations = JSON.parse(updates.specializations);
+
+    // Convert date strings to Date objects in availability
+    if (updates.availability) {
+      updates.availability = updates.availability.map(slot => ({
+        ...slot,
+        date: new Date(slot.date)
+      }));
+    }
 
     if (req.file) {
       const result = await cloudinary.uploader.upload(req.file.path);
@@ -101,42 +115,111 @@ exports.getAllTrainers = async (req, res) => {
 // Get available 1-hour slots for a trainer on a given date
 exports.getAvailableSlots = async (req, res) => {
   try {
-    const { trainerId, date } = req.query;
+    const { trainerId } = req.query;
     const trainer = await Trainer.findById(trainerId);
     if (!trainer || !trainer.isActive) {
       return res.status(404).json({ message: 'Trainer not found or inactive' });
     }
-    const bookingDay = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
-    const slot = trainer.availability.find(slot => slot.day === bookingDay);
-    if (!slot) {
-      return res.json([]); // No availability for this day
+
+    const now = new Date();
+    now.setMilliseconds(0);
+    now.setSeconds(0);
+
+    // Filter availability to only include future dates/times
+    const upcomingAvailability = trainer.availability.filter(slot => {
+      const slotDate = new Date(slot.date);
+      slotDate.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (slotDate > today) {
+        return true; // Future date, always available
+      } else if (slotDate.toDateString() === today.toDateString()) {
+        // Today, check if the slot start time is in the future
+        const [slotHour, slotMinute] = slot.startTime.split(':').map(Number);
+        const slotStartTimeObj = new Date();
+        slotStartTimeObj.setHours(slotHour, slotMinute, 0, 0);
+        return slotStartTimeObj > now; // Check against current time
+      }
+      return false; // Past date or past time today
+    });
+
+    if (upcomingAvailability.length === 0) {
+      return res.json([]); // No upcoming availability
     }
-    // Generate 1-hour slots within the available window
-    const slots = [];
-    let [h, m] = slot.startTime.split(':').map(Number);
-    const [endH, endM] = slot.endTime.split(':').map(Number);
-    while (h < endH || (h === endH && m < endM)) {
-      const start = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-      let nextH = h + 1;
-      let nextM = m;
-      if (nextH > 23) break;
-      const end = `${nextH.toString().padStart(2, '0')}:${nextM.toString().padStart(2, '0')}`;
-      if (end > slot.endTime) break;
-      slots.push({ startTime: start, endTime: end });
-      h = nextH;
-      m = nextM;
-    }
-    // Remove already booked slots
+
+    // Collect all unique upcoming dates
+    const upcomingDates = [...new Set(upcomingAvailability.map(slot => new Date(slot.date).toISOString().split('T')[0]))];
+
+    // Fetch all booked slots for upcoming dates
     const bookings = await TrainerBooking.find({
       trainer: trainerId,
-      bookingDate: date,
+      bookingDate: { $in: upcomingDates },
       status: { $in: ['pending', 'confirmed'] }
     });
-    const bookedTimes = bookings.map(b => b.startTime);
-    const availableSlots = slots.filter(s => !bookedTimes.includes(s.startTime));
+
+    const bookedSlotsMap = new Map();
+    bookings.forEach(booking => {
+      const dateString = new Date(booking.bookingDate).toISOString().split('T')[0];
+      if (!bookedSlotsMap.has(dateString)) {
+        bookedSlotsMap.set(dateString, new Set());
+      }
+      bookedSlotsMap.get(dateString).add(booking.startTime);
+    });
+
+    const availableSlots = [];
+
+    // Generate available slots for each upcoming availability entry
+    upcomingAvailability.forEach(slot => {
+      const slotDate = new Date(slot.date);
+      const dateString = slotDate.toISOString().split('T')[0];
+      const bookedTimesForDate = bookedSlotsMap.get(dateString) || new Set();
+
+      let [h, m] = slot.startTime.split(':').map(Number);
+      const [endH, endM] = slot.endTime.split(':').map(Number);
+
+      while (h < endH || (h === endH && m < endM)) {
+        const start = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        let nextH = h + 1;
+        let nextM = m;
+        if (nextH > 23) break; // Should not happen with 1-hour slots, but safety
+        const end = `${nextH.toString().padStart(2, '0')}:${nextM.toString().padStart(2, '0')}`;
+
+        // Check if the generated slot is in the future (only relevant for today's date)
+        const slotStartTimeObj = new Date(slotDate);
+        slotStartTimeObj.setHours(h, m, 0, 0);
+
+        if (slotStartTimeObj > now) {
+            // Check if this specific slot is booked
+            if (!bookedTimesForDate.has(start)) {
+                availableSlots.push({ date: dateString, startTime: start, endTime: end });
+            }
+        }
+
+        h = nextH;
+        m = nextM;
+      }
+    });
+    
+    // Sort available slots by date and then time
+    availableSlots.sort((a, b) => {
+        const dateComparison = new Date(a.date) - new Date(b.date);
+        if (dateComparison !== 0) {
+            return dateComparison;
+        }
+        // Compare times if dates are the same
+        const [aHour, aMinute] = a.startTime.split(':').map(Number);
+        const [bHour, bMinute] = b.startTime.split(':').map(Number);
+        if (aHour !== bHour) {
+            return aHour - bHour;
+        }
+        return aMinute - bMinute;
+    });
+
     res.json(availableSlots);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error fetching available slots:", error);
+    res.status(500).json({ message: error.message || 'Failed to fetch available slots' });
   }
 };
 
@@ -149,22 +232,28 @@ exports.createBooking = async (req, res) => {
     if (!trainer || !trainer.isActive) {
       return res.status(404).json({ message: 'Trainer not found or inactive' });
     }
-    // Get day of week from bookingDate
-    const bookingDay = new Date(bookingDate).toLocaleDateString('en-US', { weekday: 'long' });
-    const slot = trainer.availability.find(slot => slot.day === bookingDay);
+
+    const bookingDateObj = new Date(bookingDate);
+    const slot = trainer.availability.find(slot => 
+      slot.date.toDateString() === bookingDateObj.toDateString()
+    );
+
     if (!slot) {
-      return res.status(400).json({ message: 'Trainer is not available on this day' });
+      return res.status(400).json({ message: 'Trainer is not available on this date' });
     }
+
     // Enforce 1-hour session
     const [sh, sm] = startTime.split(':').map(Number);
     const [eh, em] = endTime.split(':').map(Number);
     if (!(eh - sh === 1 && em === sm)) {
       return res.status(400).json({ message: 'Session must be exactly 1 hour' });
     }
+
     // Check if slot is within availability
     if (!(startTime >= slot.startTime && endTime <= slot.endTime)) {
       return res.status(400).json({ message: 'Selected time is outside trainer availability' });
     }
+
     // Check if slot is already booked
     const existingBooking = await TrainerBooking.findOne({
       trainer: trainerId,
@@ -173,15 +262,18 @@ exports.createBooking = async (req, res) => {
       endTime,
       status: { $in: ['pending', 'confirmed'] }
     });
+
     if (existingBooking) {
       return res.status(400).json({ message: 'This time slot is already booked' });
     }
+
     // Create Stripe payment intent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: trainer.pricePerSession * 100,
       currency: 'usd',
       payment_method_types: ['card']
     });
+
     const booking = new TrainerBooking({
       user: req.user.id,
       trainer: trainerId,
@@ -191,6 +283,7 @@ exports.createBooking = async (req, res) => {
       price: trainer.pricePerSession,
       stripePaymentId: paymentIntent.id
     });
+
     await booking.save();
     res.status(201).json({
       booking,
@@ -411,17 +504,12 @@ exports.getTrainerById = async (req, res) => {
 
 function filterPastAvailabilities(availability) {
   const today = new Date();
-  const todayDay = today.toLocaleDateString('en-US', { weekday: 'long' });
+  today.setHours(0, 0, 0, 0);
 
   return availability.filter(slot => {
-    // If slot is for today or a future day in the week, keep it
-    const slotDayIndex = [
-      'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
-    ].indexOf(slot.day);
-    const todayIndex = today.getDay();
-
-    // If today is before or the same as the slot day, keep it
-    return slotDayIndex >= todayIndex;
+    const slotDate = new Date(slot.date);
+    slotDate.setHours(0, 0, 0, 0);
+    return slotDate >= today;
   });
 }
 

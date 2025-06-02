@@ -11,9 +11,8 @@ const trainerSchema = new mongoose.Schema({
     required: true
   },
   availability: [{
-    day: {
-      type: String,
-      enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+    date: {
+      type: Date,
       required: true
     },
     startTime: {
