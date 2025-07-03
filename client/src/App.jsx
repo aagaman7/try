@@ -54,8 +54,8 @@ function App() {
               {/* Customer Routes */}
               <Route element={<CustomerRoute />}>
                 <Route element={<UserLayout />}>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/membership" element={<MembershipPage />} />
+                <Route path="/" element={<Home />} />
+                <Route path="/membership" element={<MembershipPage />} />
                   <Route path="/booking/:packageId" element={<BookingPage />} />
                   <Route path="/dashboard" element={<UserDashboard />} />
                   <Route path="/trainers" element={<TrainerList />} />

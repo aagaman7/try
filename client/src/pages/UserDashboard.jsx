@@ -120,13 +120,29 @@ const UserDashboard = () => {
   useEffect(() => {
     if (dashboardData?.membershipDetails) {
       const isActive = dashboardData.membershipDetails.status === 'Active';
-      const qrMemberData = {
-        name: currentUser.name,
-        package: dashboardData.membershipDetails.package.name,
-        daysRemaining: dashboardData.membershipDetails.daysRemaining,
-        access: isActive ? "granted" : "denied"
+      
+      // Format the data in a more readable way
+      const formattedData = {
+        "Member Information": {
+          "Name": currentUser.name,
+          "Package": dashboardData.membershipDetails.package.name,
+          "Status": isActive ? "Active" : "Inactive",
+          "Access": isActive ? "Granted" : "Denied",
+          "Days Remaining": `${dashboardData.membershipDetails.daysRemaining} days`,
+          "Valid Until": format(new Date(dashboardData.membershipDetails.endDate), 'MMMM dd, yyyy')
+        },
+        "Services": dashboardData.membershipDetails.customServices?.map(service => service.name) || []
       };
-      setQrData(JSON.stringify(qrMemberData));
+
+      // Convert to formatted string with proper spacing and line breaks
+      const qrFormattedString = JSON.stringify(formattedData, null, 2)
+        .replace(/[{}[\],]/g, '') // Remove brackets and commas
+        .replace(/"/g, '') // Remove quotes
+        .replace(/:/g, ': ') // Add space after colons
+        .replace(/\n\s*\n/g, '\n') // Remove extra blank lines
+        .trim();
+
+      setQrData(qrFormattedString);
     }
   }, [dashboardData, currentUser]);
   
@@ -725,7 +741,7 @@ const UserDashboard = () => {
     let paymentIntervalForDiscount; // Match intervals used in backend/discounts
     if (months === 1) { paymentIntervalForDiscount = 'Monthly'; }
     else if (months === 3) { paymentIntervalForDiscount = '3 Months'; }
-    else if (months === 6) { paymentIntervalForDiscount = '6 Months'; } // Added 6 months as per frontend UI
+    // else if (months === 6) { paymentIntervalForDiscount = '6 Months'; } // Added 6 months as per frontend UI
     else if (months === 12) { paymentIntervalForDiscount = 'Yearly'; }
     else { paymentIntervalForDiscount = null; }
 
@@ -828,19 +844,63 @@ const UserDashboard = () => {
               <AnimatePresence>
                 {showQR && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="flex justify-center"
+                    initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
+                    animate={{ 
+                      opacity: 1, 
+                      scale: 1, 
+                      rotate: 0,
+                      transition: {
+                        type: "spring",
+                        stiffness: 260,
+                        damping: 20
+                      }
+                    }}
+                    exit={{ 
+                      opacity: 0, 
+                      scale: 0.8, 
+                      rotate: 5,
+                      transition: {
+                        duration: 0.2
+                      }
+                    }}
+                    className="flex flex-col items-center"
                   >
-                    <div className="bg-white p-4 rounded-xl">
+                    <motion.div 
+                      className="bg-white p-4 rounded-xl relative"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                    >
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="absolute -top-2 -right-2 bg-rose-500 text-white text-xs px-2 py-1 rounded-full"
+                      >
+                        Active
+                      </motion.div>
                       <QRCodeSVG
                         value={qrData}
                         size={200}
                         level="H"
                         includeMargin={true}
                       />
-                    </div>
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="mt-2 text-center text-sm text-gray-600"
+                      >
+                        Scan to verify membership
+                      </motion.div>
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="mt-4 text-sm text-gray-400"
+                    >
+                      Valid until {format(new Date(endDate), 'MMM dd, yyyy')}
+                    </motion.div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1143,7 +1203,7 @@ const UserDashboard = () => {
               >
                 <option value="1">1 Month</option>
                   <option value="3">3 Months</option>
-                  <option value="6">6 Months</option>
+                  {/* <option value="6">6 Months</option> */}
                   <option value="12">12 Months</option>
               </select>
 

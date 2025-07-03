@@ -530,23 +530,23 @@ const BookingsPanel = () => {
   return (
     <Card
       title="Gym Bookings Management"
-      extra={
-        <Space>
-          <Button
-            icon={<FilterOutlined />}
-            onClick={() => setFilterVisible(!filterVisible)}
-          >
-            Filters
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleCreateBooking}
-          >
-            New Booking
-          </Button>
-        </Space>
-      }
+      // extra={
+      //   <Space>
+      //     <Button
+      //       icon={<FilterOutlined />}
+      //       onClick={() => setFilterVisible(!filterVisible)}
+      //     >
+      //       Filters
+      //     </Button>
+      //     <Button
+      //       type="primary"
+      //       icon={<PlusOutlined />}
+      //       onClick={handleCreateBooking}
+      //     >
+      //       New Booking
+      //     </Button>
+      //   </Space>
+      // }
     >
       {/* Search and Filter Section */}
       {filterVisible && (

@@ -1,0 +1,396 @@
+bstract
+This project report presents the design and development of a comprehensive Gym Management System, created as part of the 6th semester project for the Bachelor of Information Management (BIM) program at Shanker Dev Campus.
+
+Developed using the MERN stack (MongoDB, Express.js, React.js, and Node.js), the system features a user interface for members to manage their gym activities and an administrative panel for managing members, trainers, bookings, and services. Key user functionalities include membership management, trainer booking, package selection, and secure payment processing through Stripe integration. The system also supports membership freezing, extension, and cancellation features.
+
+The admin panel provides a dashboard displaying key metrics (e.g., total members, active bookings, revenue), as well as complete CRUD capabilities for managing trainers, packages, and services. This project aims to modernize traditional gym operations, focusing on automation, user experience, and robust backend integration.
+
+The report elaborates on the development process including requirement analysis, system design, implementation, and testing, providing a comprehensive overview of the Gym Management System's architecture and features.
+
+1. Background
+The Gym Management System is a comprehensive web application developed using the MERN (MongoDB, Express.js, React.js, Node.js) stack. This system is designed to modernize and streamline gym operations by providing an integrated platform for managing members, trainers, bookings, services, and payments. The application features a responsive design and secure authentication system to ensure smooth operation of gym facilities.
+
+2. Problem Statement
+Traditional gym management faces several challenges:
+- Manual management of member registrations and bookings
+- Difficulty in tracking trainer schedules and availability
+- Inefficient handling of payments and package subscriptions
+- Lack of centralized system for service management
+- Poor communication between gym staff and members
+- Difficulty in managing gym capacity and resources
+
+This project addresses these challenges by providing:
+1. Automated booking system for gym sessions and trainer appointments
+2. Integrated payment processing and package management
+4. Efficient trainer management and scheduling
+5. Comprehensive member management system
+
+3. Theory
+The use case diagram (Figure 2.1) below represents the interactions between different user roles and the Gym Management System. The three primary actors - Member, Admin, and SuperAdmin - interact with the system to perform various tasks. Members can register/login, view and book trainers, manage their membership, track their bookings, write trainer reviews, and send contact messages. These actions represent the core gym management and engagement functionalities of the platform. The Payment System actor is also depicted to show the integration of third-party services like Stripe for processing membership payments and package purchases.
+
+The admin role is responsible for managing trainers, viewing analytics, handling member accounts, and managing packages and services, enabling efficient backend control. Meanwhile, the SuperAdmin possesses elevated privileges, such as managing admins in addition to overseeing trainer management, package management, and system-wide configurations. The system also includes automated notifications for membership status changes, booking confirmations, and payment processing, enhancing the overall user experience and operational efficiency.
+
+4. Diagram Generation Prompts
+
+4.1 Use Case Diagram Prompt
+Create a comprehensive use case diagram for the Gym Management System with the following specifications:
+
+Primary Actors:
+1. Member (Regular User)
+2. Admin
+3. Payment System (Stripe)
+
+Member Use Cases:
+- Authentication (Register, Login, Logout)
+- View and Select Membership Packages
+- Book Trainers
+- Manage Membership (Freeze, Unfreeze, Extend, Cancel)
+- View and Update Profile
+- Submit Trainer Reviews
+- Send Contact Messages
+- View Dashboard
+- Process Payments
+- View Available Services
+
+
+Admin Use Cases:
+- Manage Members
+- Manage Trainers (Add, Edit, Remove)
+- Manage Packages and Services
+- Manage Discount Rates
+- View Analytics and Reports
+- View Bookings
+- View Payment History
+- Update User Roles
+- View User Membership History
+
+Include relationships:
+- Include relationships for authentication flows
+- Extend relationships for optional features
+- Generalization relationships for user roles
+- Association relationships between actors and use cases
+
+4.1.1 Simplified Use Case Diagram Prompt
+Create a basic use case diagram for the Gym Management System with the following specifications:
+
+Primary Actors:
+1. Member
+2. Admin
+
+Core Use Cases:
+
+Member Use Cases:
+- Authentication (Register, Login)
+- View Packages
+- Book Trainer
+- Manage Membership
+- View Dashboard
+- Process Payment
+
+Admin Use Cases:
+- Manage Members
+- Manage Trainers
+- Manage Packages
+- View Bookings
+
+Include Relationships:
+- Authentication includes Register
+- Authentication includes Login
+- Manage Membership includes Freeze/Unfreeze
+- Manage Membership includes Extend
+- Manage Membership includes Cancel
+
+Extend Relationships:
+- Process Payment extends Book Trainer
+- View Dashboard extends View Packages
+- View Dashboard extends View Bookings
+
+Note: Keep the diagram simple and focused on core functionalities. Use standard UML notation for actors, use cases, and relationships.
+
+4.2 Sequence Diagram Prompts
+
+4.2.1 Membership Purchase Flow
+Create a sequence diagram showing the interaction between:
+- Member
+- Frontend Application
+- Backend API
+- Payment System (Stripe)
+- Database
+
+API Endpoints and Data Structures:
+
+1. Initial Package Selection:
+   - Frontend → Backend: GET `/api/packages`
+   - Response: Array of package objects with structure:
+     ```json
+     {
+       "_id": "string",
+       "name": "string",
+       "basePrice": "number",
+       "includedServices": [{
+         "_id": "string",
+         "name": "string",
+         "price": "number"
+       }]
+     }
+     ```
+
+2. Payment Intent Creation:
+   - Frontend → Backend: POST `/api/payment/create-payment-intent`
+   - Request Body:
+     ```json
+     {
+       "amount": "number",
+       "currency": "npr",
+       "metadata": {
+         "packageName": "string",
+         "timeSlot": "string",
+         "paymentInterval": "string"
+       }
+     }
+     ```
+   - Response:
+     ```json
+     {
+       "clientSecret": "string"
+     }
+     ```
+
+3. Booking Creation:
+   - Frontend → Backend: POST `/api/bookings`
+   - Request Body:
+     ```json
+     {
+       "packageId": "string",
+       "customServices": ["string"],
+       "timeSlot": "string",
+       "workoutDaysPerWeek": "number",
+       "goals": "string",
+       "paymentInterval": "string",
+       "paymentIntentId": "string",
+       "amount": "number",
+       "status": "confirmed"
+     }
+     ```
+   - Response:
+     ```json
+     {
+       "booking": {
+         "_id": "string",
+         "user": "string",
+         "package": "object",
+         "status": "string",
+         "timeSlot": "string",
+         "workoutDaysPerWeek": "number",
+         "goals": "string",
+         "paymentInterval": "string",
+         "amount": "number",
+         "createdAt": "date"
+       }
+     }
+     ```
+
+Sequence Steps:
+
+1. Package Selection:
+   - Member views available packages
+   - Frontend fetches packages from `/api/packages`
+   - Member selects package and payment interval
+   - Frontend calculates total price including:
+     - Base package price
+     - Additional services price
+     - Payment interval multiplier
+     - Applicable discounts
+
+2. Payment Processing:
+   - Frontend requests payment intent from `/api/payment/create-payment-intent`
+   - Backend creates Stripe PaymentIntent
+   - Frontend initializes Stripe Elements
+   - Member enters card details
+   - Frontend confirms payment with Stripe using clientSecret
+   - Stripe processes payment
+   - Payment result returned to frontend
+
+3. Booking Creation:
+   - Frontend sends booking details to `/api/bookings`
+   - Backend validates:
+     - Package existence
+     - User eligibility
+     - Payment confirmation
+   - Backend creates booking record
+   - Database updates:
+     - Creates new booking
+     - Updates user's currentMembership
+     - Records payment details
+
+4. Confirmation:
+   - Backend sends success response
+   - Frontend displays success message
+   - Member redirected to dashboard
+   - Dashboard fetches updated membership status
+
+Error Handling Paths:
+- Package not found
+- Payment processing failed
+- Insufficient funds
+- Invalid payment details
+- Booking creation failed
+- Server errors
+
+Database Operations:
+- Package lookup
+- User membership update
+- Booking record creation
+- Payment record creation
+
+Note: For each sequence diagram, include:
+- Clear actor and system boundaries
+- Message flow direction
+- Return messages
+- Error handling paths
+- Database operations
+- System responses
+- Time sequence of events
+
+4.2.2 Trainer Booking Flow
+Create a sequence diagram showing the interaction between:
+- Member
+- Frontend Application
+- Backend API
+- Database
+- Notification System
+
+Steps to include:
+1. Member views available trainers
+2. Member selects trainer and time slot
+3. Frontend sends booking request
+4. Backend validates availability
+5. Database updates booking status
+6. Notification sent to member
+7. Confirmation displayed to member
+
+4.2.3 Membership Management Flow
+Create a sequence diagram showing the interaction between:
+- Member
+- Frontend Application
+- Backend API
+- Database
+- Payment System (for extensions)
+
+Steps to include:
+1. Member requests membership action (freeze/unfreeze/extend)
+2. Frontend sends request to backend
+3. Backend validates request
+4. Database updates membership status
+5. If extension, payment processing
+6. Confirmation to member
+7. Dashboard update
+
+4.2.4 Admin Management Flow
+Create a sequence diagram showing the interaction between:
+- Admin
+- Frontend Application
+- Backend API
+- Database
+- Notification System
+
+Steps to include:
+1. Admin logs in
+2. Admin performs management action (user/trainer/package management)
+3. Backend validates permissions
+4. Database updates
+5. Notification sent to affected users
+6. Confirmation to admin
+7. Dashboard update
+
+4.2.5 Authentication Flow
+Create a sequence diagram showing the interaction between:
+- User
+- Frontend Application
+- Backend API
+- Database
+
+Registration Flow Steps:
+1. User enters registration details (name, email, password)
+2. Frontend validates input format
+3. Frontend sends registration request to backend
+4. Backend validates password requirements:
+   - Minimum 8 characters
+   - At least one number
+   - At least one symbol
+5. Backend checks for existing user with same email
+6. Backend hashes password using bcrypt
+7. Backend creates new user in database
+8. Backend sends success response
+9. Frontend displays success message
+
+Login Flow Steps:
+1. User enters login credentials (email, password)
+2. Frontend sends login request to backend
+3. Backend finds user by email
+4. Backend verifies password using bcrypt
+5. Backend generates JWT token with user ID and role
+6. Backend sends response with:
+   - JWT token
+   - User data (id, name, email, role, currentMembership)
+7. Frontend stores token and user data
+8. Frontend redirects to appropriate dashboard
+
+Error Handling Paths:
+- Registration:
+  - Email already exists
+  - Password requirements not met
+  - Server error
+- Login:
+  - Invalid credentials
+  - User not found
+  - Server error
+
+Note: For each sequence diagram, include:
+- Clear actor and system boundaries
+- Message flow direction
+- Return messages
+- Error handling paths
+- Database operations
+- System responses
+- Time sequence of events
+
+5. Objectives
+The major objectives of this project are:
+1. To develop a scalable and responsive gym management system using MERN stack
+2. To implement secure user authentication and role-based access control
+3. To create an efficient booking system for gym sessions and trainer appointments
+4. To provide comprehensive package and payment management
+5. To enable real-time gym capacity monitoring and management
+6. To implement a review and rating system for trainers
+7. To create an effective communication system between members and staff
+8. To ensure secure and reliable data management
+9. To provide an intuitive user interface for both members and administrators
+10. To implement automated notification system for bookings and updates
+
+4. Testing
+In the testing phase of our Gym Management System project, we followed a comprehensive testing strategy involving unit, integration, and system testing. Unit testing involves testing individual components or modules of the application (like specific API endpoints or React components) to ensure they function correctly. Integration testing focuses on verifying the interactions and data flow between different modules, such as how the frontend user interface communicates with the backend API, or how different backend controllers and models work together. System testing involves evaluating the entire integrated system to ensure it meets all specified functional and non-functional requirements before deployment. This multi-faceted approach helped us ensure the quality, reliability, and robustness of the Gym Management platform.
+
+4.1 Unit Testing (API Endpoints via Tools like Postman)
+For unit testing of our backend API endpoints, tools like Postman were utilized. This allowed for sending various types of HTTP requests (GET, POST, PUT, DELETE) to the endpoints with different test data, and validating the structure, status code, and content of the responses. This process helped in isolating and identifying bugs within individual API functionalities and ensuring they perform as expected according to the API contract.
+
+Table 4.1: Test Cases for Unit Testing (Examples)
+| SN | Test Case | Test Data | Expected Result | Output Result | Pass/Fail |
+|---|---|---|---|---|---|
+| 1. | User Registration (Valid Data) | `{\"name\": \"Test User\", \"email\":\"testuser@example.com\", \"password\": \"Secure@123\"}` | `{\"message\":\"User registered successfully\"}` | `{\"message\":\"User registered successfully\"}` | Pass/Fail |
+| 2. | User Registration (Email Exists) | `{\"name\": \"Another User\", \"email\":\"testuser@example.com\", \"password\": \"Password123\"}` | `{\"message\":\"User already exists\"}` | `{\"message\":\"User already exists\"}` | Pass/Fail |
+| 3. | User Login (Valid Credentials) | `{\"email\": \"testuser@example.com\", \"password\": \"Secure@123\"}` | JSON object containing `token` and `user` object with id, name, email, role, currentMembership. | JSON object containing `token` and `user` object with id, name, email, role, currentMembership. | Pass/Fail |
+| 4. | User Login (Invalid Password) | `{\"email\": \"testuser@example.com\", \"password\": \"WrongPassword\"}` | `{\"message\":\"Invalid credentials\"}` | `{\"message\":\"Invalid credentials\"}` | Pass/Fail |
+| 5. | Get All Packages | (GET request to /api/packages) | Array of package objects. | Array of package objects. | Pass/Fail |
+| 6. | Get All Trainers | (GET request to /api/trainers) | Array of trainer objects. | Array of trainer objects. | Pass/Fail |
+| 7. | Get User Dashboard Info (No Membership) | (Authenticated GET request to /api/dashboard) | Status 404 with `{\"message\":\"No active membership found\", \"details\":\"No current or recent active bookings\"}` OR `{\"message\":\"No active membership found\", \"details\":\"Current membership ID invalid\"}`. | Status 404 with `{\"message\":\"No active membership found\", \"details\":\"No current or recent active bookings\"}` OR `{\"message\":\"No active membership found\", \"details\":\"Current membership ID invalid\"}`. | Pass/Fail |
+| 8. | Create Booking (Valid Data) | `{\"packageId\": \"<valid-package-id>\", \"paymentInterval\": \"Monthly\", \"timeSlot\": \"Morning\", \"workoutDaysPerWeek\": 3, \"goals\": \"Weight Loss\"}` | Status 201 with JSON object containing `booking` object and `clientSecret` string. | Status 201 with JSON object containing `booking` object and `
+
+1.7 Report Organization
+The report is organized into three main chapters to provide a clear and structured overview of the project. Chapter 1 introduces the project, outlining its background, problem statement, objectives, related studies, development methodology, scope, and limitations. Chapter 2 details the system development process, including requirement analysis, design models, implementation tools, and testing procedures. Finally, Chapter 3 presents the overall summary, key conclusions drawn from the project, and recommendations for future improvements or expansion.
+
+• Chapter 1: This chapter introduces the project by outlining the motivation behind developing a comprehensive Gym Management System, addressing challenges of manual record-keeping, inefficient member management, and limited service tracking. It highlights the project's objectives, related research, and the Agile development approach used. The chapter also defines the system's scope and limitations, emphasizing its focus on essential gym management features including member management, trainer coordination, service tracking, and payment processing.
+
+• Chapter 2: This chapter outlines the System Development Process, detailing the key phases involved in building the system. It begins with the analysis phase, covering requirement gathering, feasibility study, and system modeling using object-oriented approaches. The design phase focuses on crafting user interfaces for both members and administrators, and object-oriented design models. Finally, the implementation phase highlights the tools and technologies used (MERN stack), module-wise development, and testing procedures to ensure system functionality and reliability.
+
+• Chapter 3: This chapter presents the conclusion and recommendation of the project, summarizing the development and outcomes of the Gym Management System. It highlights the successful implementation of core features using the MERN stack and evaluates the system's effectiveness in addressing the defined objectives. The chapter also offers practical recommendations for future improvements, such as integrating advanced analytics for member progress tracking, implementing automated scheduling systems, adding mobile application support, enhancing payment gateway integration, and incorporating AI-based workout recommendations.

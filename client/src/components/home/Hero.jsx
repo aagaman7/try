@@ -5,14 +5,21 @@ import { FaDumbbell, FaRunning, FaHeart } from 'react-icons/fa';
 const Hero = () => {
   return (
     <div className="relative min-h-screen bg-black overflow-hidden">
-      {/* Background Pattern */}
+      {/* Background Image with Enhanced Overlay */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-black to-gray-900"></div>
-        <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-30"></div>
+        <img 
+          src="/view-gym-room-training-sports.jpg" 
+          alt="Gym Background" 
+          className="w-full h-full object-cover pointer-events-none select-none"
+        />
+        {/* Deeper black overlay for better text contrast and blending */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/95 via-black/80 to-black/95"></div>
+        {/* Slightly more subtle pattern */}
+        <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-10"></div>
       </div>
 
       {/* Content */}
-      <div className="relative pt-32 pb-32 md:pt-40 md:pb-40">
+      <div className="relative z-10 pt-32 pb-32 md:pt-40 md:pb-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tight leading-none">
@@ -42,15 +49,15 @@ const Hero = () => {
 
             {/* Stats */}
             <div className="mt-20 grid grid-cols-1 gap-8 sm:grid-cols-3">
-              <div className="p-6 rounded-lg bg-white/5 backdrop-blur-sm">
+              <div className="p-6 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
                 <div className="text-4xl font-black text-white">5000+</div>
                 <div className="text-gray-400 font-medium">Happy Members</div>
               </div>
-              <div className="p-6 rounded-lg bg-white/5 backdrop-blur-sm">
+              <div className="p-6 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
                 <div className="text-4xl font-black text-white">20+</div>
                 <div className="text-gray-400 font-medium">Fitness Programs</div>
               </div>
-              <div className="p-6 rounded-lg bg-white/5 backdrop-blur-sm">
+              <div className="p-6 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
                 <div className="text-4xl font-black text-white">15+</div>
                 <div className="text-gray-400 font-medium">Years Experience</div>
               </div>

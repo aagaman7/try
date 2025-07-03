@@ -270,7 +270,7 @@ exports.createBooking = async (req, res) => {
     // Create Stripe payment intent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: trainer.pricePerSession * 100,
-      currency: 'usd',
+      currency: 'npr',
       payment_method_types: ['card']
     });
 

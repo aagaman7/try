@@ -389,15 +389,15 @@ const UsersPanel = () => {
   return (
     <Card 
       title="Users Management"
-      extra={
-        <Button 
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleAdd}
-        >
-          Add User
-        </Button>
-      }
+      // extra={
+      //   <Button 
+      //     type="primary"
+      //     icon={<PlusOutlined />}
+      //     onClick={handleAdd}
+      //   >
+      //     Add User
+      //   </Button>
+      // }
     >
       {/* Users Table */}
       <Table 

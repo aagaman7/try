@@ -313,7 +313,7 @@ const PackagesPanel = () => {
                   />
                 </div>
                 <div className="flex gap-6">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  {/* <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       name="isCustom"
@@ -322,7 +322,7 @@ const PackagesPanel = () => {
                       className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                     />
                     <span className="text-gray-700">Custom Package</span>
-                  </label>
+                  </label> */}
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"

@@ -15,7 +15,7 @@ const NewsSection = () => {
         const response = await axios.get(
           'https://newsapi.org/v2/everything', {
             params: {
-              q: '(fitness OR "gym workout" OR "exercise training" OR "bodybuilding" OR "weight training" OR "personal training") AND (health OR wellness OR workout)',
+              q: '(fitness OR "gym workout" OR "exercise training" OR "bodybuilding" OR "weight training" OR "personal training") AND (health OR wellness OR workout) NOT ("sex"  OR "sexual" ) ',
               domains: 'bodybuilding.com,menshealth.com,womenshealthmag.com,shape.com,acefitness.org,healthline.com,muscleandstrength.com,stack.com',
               language: 'en',
               sortBy: 'publishedAt',

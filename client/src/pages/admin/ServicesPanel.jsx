@@ -315,8 +315,9 @@ const ServicesPanel = () => {
             <InputNumber
               min={0}
               formatter={value => `Nrs ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={value => value.replace(/\$\s?|(,*)/g, '')}
+              parser={value => value.replace(/[^\d.]/g, '')}
               style={{ width: '100%' }}
+              precision={2}
             />
           </Form.Item>
 
